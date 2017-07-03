@@ -100,7 +100,12 @@ then
 	if mpu6000 -T 20608 start
 	then
 	fi
-
+	
+	# External laser range finder
+	if vl53l0x start
+	then
+	fi
+	
 	# external MPU6K is rotated 180 degrees yaw
 	if mpu6000 -S -R 4 start
 	then
