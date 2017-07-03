@@ -3329,6 +3329,18 @@ PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
 PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
 
 /**
+ * STM laser rangefinder (I2C)
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 1
+ * @group Sensor Enable
+ * @value 0 Disabled
+ * @value 1 Enabled
+*/
+PARAM_DEFINE_INT32(SENS_EN_VL53L0X, 0);
+
+/**
  * Maxbotix Soanr (mb12xx)
  *
  * @reboot_required true
@@ -3336,8 +3348,6 @@ PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
  * @boolean
  * @group Sensor Enable
  */
-
-PARAM_DEFINE_INT32(SENS_EN_VL53L0X, 0);
 
 PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
 
