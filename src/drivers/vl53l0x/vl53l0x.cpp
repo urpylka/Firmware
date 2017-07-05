@@ -549,7 +549,7 @@ VL53L0X::init()
 		// -- VL53L0X_SetSequenceStepEnable() end
 
 		// "Recalculate timing budget"
-		setMeasurementTimingBudget(20000);
+		setMeasurementTimingBudget(measurement_timing_budget_us);
 
 		// VL53L0X_StaticInit() end
 
