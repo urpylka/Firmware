@@ -965,9 +965,9 @@ VL53L0X::probe()
 		// disable SIGNAL_RATE_MSRC (bit 1) and SIGNAL_RATE_PRE_RANGE (bit 4) limit checks
 		writeReg(MSRC_CONFIG_CONTROL, readReg(MSRC_CONFIG_CONTROL) | 0x12);
 
-		setSignalRateLimit(0.1);
-		setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
-		setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
+		setSignalRateLimit(0.25);
+		//setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 14);
+		//setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 10);
 
 		writeReg(SYSTEM_SEQUENCE_CONFIG, 0xFF);
 
@@ -975,7 +975,7 @@ VL53L0X::probe()
 		bool spad_type_is_aperture;
 		if (!getSpadInfo(&spad_count, &spad_type_is_aperture)) {
 			printf("No spad info\n");
-			return false;
+			return PX4_ERROR;
 		}
 
 		// The SPAD map (RefGoodSpadMap) is read by VL53L0X_get_info_from_device() in
@@ -1131,7 +1131,7 @@ VL53L0X::probe()
 		if (!performSingleRefCalibration(0x40)) {
 			printf("1\n");
 			DEVICE_LOG("(%dHz) with address 0x%02x performSingleRefCalibration failed", (int)(1e6f / _conversion_interval), VL53L0X_BASEADDR);
-			return false;
+			return PX4_ERROR;
 		}
 
 		// -- VL53L0X_perform_vhv_calibration() end
@@ -1142,7 +1142,7 @@ VL53L0X::probe()
 		if (!performSingleRefCalibration(0x00)) {
 			printf("2\n");
 			DEVICE_LOG("(%dHz) with address 0x%02x performSingleRefCalibration failed ", (int)(1e6f / _conversion_interval), VL53L0X_BASEADDR);
-			return false;
+			return PX4_ERROR;
 		}
 
 		// -- VL53L0X_perform_phase_calibration() end
