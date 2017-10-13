@@ -304,6 +304,9 @@ private:
 	_arspFusionThreshold; 	// a value of zero will disabled airspeed fusion. Any another positive value will determine
 	// the minimum airspeed which will still be fused
 	control::BlockParamInt _fuseBeta; // 0 disables synthetic sideslip fusion, 1 activates it
+	control::BlockParamInt _fakeOrigin; // 0 disables fake origin, 1 activates it
+	control::BlockParamFloat _fakeOriginLat; // sets fake global origin latitude
+	control::BlockParamFloat _fakeOriginLon; // sets fake global origin longitude
 
 	// output predictor filter time constants
 	control::BlockParamExtFloat _tau_vel;	// time constant used by the output velocity complementary filter (s)
@@ -427,6 +430,9 @@ Ekf2::Ekf2():
 	_ev_pos_z(this, "EKF2_EV_POS_Z", false, _params->ev_pos_body(2)),
 	_arspFusionThreshold(this, "EKF2_ARSP_THR", false),
 	_fuseBeta(this, "EKF2_FUSE_BETA", false),
+	_fakeOrigin(this, "EKF2_FAKE_ORIGIN", false),
+	_fakeOriginLat(this, "EKF2_LAT", 0.0f),
+	_fakeOriginLon(this, "EKF2_LON", 0.0f),
 	_tau_vel(this, "EKF2_TAU_VEL", false, _params->vel_Tau),
 	_tau_pos(this, "EKF2_TAU_POS", false, _params->pos_Tau),
 	_gyr_bias_init(this, "EKF2_GBIAS_INIT", false, _params->switch_on_gyro_bias),
@@ -735,6 +741,13 @@ void Ekf2::task_main()
 		// only fuse synthetic sideslip measurements if conditions are met
 		bool fuse_beta = !vehicle_status.is_rotary_wing && _fuseBeta.get();
 		_ekf.set_fuse_beta_flag(fuse_beta);
+
+		// only fuse fake origin measurements if conditions are met
+		bool fake_origin = _fakeOrigin.get();
+		if(!(_fusion_mode.get() & MASK_USE_GPS) && fake_origin && !_ekf.global_position_is_valid()) {
+			_ekf.set_fake_origin_flag(fake_origin);
+			_ekf.set_fake_origin_pos(_fakeOriginLat.get(), _fakeOriginLon.get());
+		}
 
 		if (optical_flow_updated) {
 			flow_message flow;
