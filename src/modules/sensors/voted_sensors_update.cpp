@@ -751,6 +751,9 @@ void VotedSensorsUpdate::mag_poll(struct sensor_combined_s &raw)
 				continue; //ignore invalid data
 			}
 
+			if(mag_report.device_id != 73225)
+				continue; //igonre internal compass
+
 			// First publication with data
 			if (_mag.priority[uorb_index] == 0) {
 
