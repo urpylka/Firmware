@@ -44,7 +44,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
+#define MEMORY_CONSTRAINED_SYSTEM
 #if defined(MEMORY_CONSTRAINED_SYSTEM)
 #  define NUM_MISSIONS_SUPPORTED 50
 #elif defined(__PX4_POSIX)

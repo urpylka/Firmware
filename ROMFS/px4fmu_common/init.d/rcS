@@ -428,7 +428,7 @@ then
 		gps start
 	fi
 
-	set DATAMAN_OPT ""
+	set DATAMAN_OPT "-r"
 	if ver hwcmp AEROFC_V1
 	then
 		set DATAMAN_OPT -i
