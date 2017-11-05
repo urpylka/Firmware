@@ -2252,13 +2252,16 @@ Commander::run()
 				if (battery.warning == battery_status_s::BATTERY_WARNING_LOW &&
 				   !low_battery_voltage_actions_done) {
 					low_battery_voltage_actions_done = true;
-					if (armed.armed) {
-						mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, RETURN TO LAUNCH ADVISED");
-					} else {
+
+					if (!armed.armed) {
 						mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, TAKEOFF DISCOURAGED");
+
+					} else {
+						mavlink_log_critical(&mavlink_log_pub, "LOW BATTERY, RETURN TO LAUNCH ADVISED");
 					}
 
 					status_changed = true;
+
 				} else if (!status_flags.usb_connected &&
 					   battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL &&
 					   !critical_battery_voltage_actions_done) {
