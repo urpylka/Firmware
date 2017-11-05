@@ -2287,13 +2287,17 @@ int commander_thread_main(int argc, char *argv[])
 
 					status_changed = true;
 
-				} else if (!status_flags.usb_connected &&
-					   battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL &&
+				} else if (battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL &&
 					   !critical_battery_voltage_actions_done) {
 					critical_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
-						mavlink_log_critical(&mavlink_log_pub, "CRITICAL BATTERY, SHUT SYSTEM DOWN");
+						if (status_flags.usb_connected) {
+							mavlink_log_critical(&mavlink_log_pub, "CRITICAL BATTERY");
+
+						} else {
+							mavlink_log_critical(&mavlink_log_pub, "CRITICAL BATTERY, SHUT SYSTEM DOWN");
+						}
 
 					} else {
 						if (low_bat_action == 1 || low_bat_action == 3) {
@@ -2321,19 +2325,23 @@ int commander_thread_main(int argc, char *argv[])
 
 					status_changed = true;
 
-				} else if (!status_flags.usb_connected &&
-					   battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY &&
+				} else if (battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY &&
 					   !emergency_battery_voltage_actions_done) {
 					emergency_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
-						mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
-						usleep(200000);
-						int ret_val = px4_shutdown_request(false, false);
-						if (ret_val) {
-							mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
+						if (status_flags.usb_connected) {
+							mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY");
+
 						} else {
-							while(1) { usleep(1); }
+							mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
+							usleep(200000);
+							int ret_val = px4_shutdown_request(false, false);
+							if (ret_val) {
+								mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
+							} else {
+								while(1) { usleep(1); }
+							}
 						}
 
 					} else {
