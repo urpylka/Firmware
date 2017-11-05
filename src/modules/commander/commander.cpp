@@ -2272,7 +2272,6 @@ Commander::run()
 
 					} else {
 						if (low_bat_action == 1 || low_bat_action == 3) {
-							// let us send the critical message even if already in RTL
 							if (TRANSITION_DENIED != main_state_transition(&status, commander_state_s::MAIN_STATE_AUTO_RTL, main_state_prev, &status_flags, &internal_state)) {
 								warning_action_on = true;
 								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAUNCH");
