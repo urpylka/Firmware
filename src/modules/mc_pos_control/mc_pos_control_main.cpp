@@ -171,12 +171,12 @@ private:
 	control::BlockParamFloat _acceleration_hor_max; /**<maximum velocity setpoint slewrate for auto & fast manual brake */
 	control::BlockParamFloat _acceleration_hor; /**<acceleration for auto and maximum for manual in velocity control mode*/
 	control::BlockParamFloat _deceleration_hor_slow; /**< slow velocity setpoint slewrate for manual deceleration*/
-	control::BlockParamFloat _acceleration_z_max_up; /** max acceleration up */
-	control::BlockParamFloat _acceleration_z_max_down; /** max acceleration down */
-	control::BlockParamFloat _cruise_speed_90; /**<speed when angle is 90 degrees between prev-current/current-next*/
+	control::BlockParamFloat _acceleration_z_max_up; /**< max acceleration up */
+	control::BlockParamFloat _acceleration_z_max_down; /**< max acceleration down */
+	control::BlockParamFloat _acceleration_z_max_takeoff; /**< max acceleration up during smooth takeoff */
+	control::BlockParamFloat _cruise_speed_90; /**< speed when angle is 90 degrees between prev-current/current-next*/
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 	control::BlockParamFloat _nav_rad; /**< radius that is used by navigator that defines when to update triplets */
-	control::BlockParamFloat _takeoff_ramp_time; /**< time contant for smooth takeoff ramp */
 	control::BlockParamFloat _jerk_hor_max; /**< maximum jerk in manual controlled mode when braking to zero */
 	control::BlockParamFloat _jerk_hor_min; /**< minimum jerk in manual controlled mode when braking to zero */
 	control::BlockParamFloat _mis_yaw_error; /**< yaw error threshold that is used in mission as update criteria */
@@ -292,7 +292,6 @@ private:
 	float _vel_max_xy;  /**< equal to vel_max except in auto mode when close to target */
 	float _acceleration_state_dependent_xy; /**< acceleration limit applied in manual mode */
 	float _acceleration_state_dependent_z; /**< acceleration limit applied in manual mode in z */
-	float _acceleration_z_max_takeoff; /**< acceleration limit applied in smooth takeoff */
 	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
 
@@ -443,10 +442,10 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_deceleration_hor_slow(this, "DEC_HOR_SLOW", true),
 	_acceleration_z_max_up(this, "ACC_UP_MAX", true),
 	_acceleration_z_max_down(this, "ACC_DOWN_MAX", true),
+	_acceleration_z_max_takeoff(this, "ACC_TKO_MAX", true),
 	_cruise_speed_90(this, "CRUISE_90", true),
 	_velocity_hor_manual(this, "VEL_MANUAL", true),
 	_nav_rad(this, "NAV_ACC_RAD", false),
-	_takeoff_ramp_time(this, "TKO_RAMP_T", true),
 	_jerk_hor_max(this, "JERK_MAX", true),
 	_jerk_hor_min(this, "JERK_MIN", true),
 	_mis_yaw_error(this, "MIS_YAW_ERR", false),
@@ -467,7 +466,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_max_xy(0.0f),
 	_acceleration_state_dependent_xy(0.0f),
 	_acceleration_state_dependent_z(0.0f),
-	_acceleration_z_max_takeoff(0.0f),
 	_manual_jerk_limit_xy(1.0f),
 	_manual_jerk_limit_z(1.0f),
 	_z_reset_counter(0),
@@ -697,11 +695,10 @@ MulticopterPositionControl::parameters_update(bool force)
 		 * TODO: check if other jerk value is required */
 		_acceleration_state_dependent_z = _acceleration_z_max_up.get();
 
-		/* calculate smooth takeoff acceleration based on takeoff ramp time and takeoff speed */
-		_acceleration_z_max_takeoff = _params.tko_speed / _takeoff_ramp_time.get();
-
-		/* smooth takeoff acceleration must not exceed maximum */
-		_acceleration_z_max_takeoff = fminf(_acceleration_z_max_takeoff, _acceleration_z_max_up.get());
+		/* acceleration up must be larger than acceleration down */
+		if (_acceleration_z_max_takeoff.get() > _acceleration_z_max_up.get()) {
+			_acceleration_z_max_takeoff.set(_acceleration_z_max_up.get());
+		}
 
 		/* we only use jerk for braking if jerk_hor_max > jerk_hor_min; otherwise just set jerk very large */
 		_manual_jerk_limit_z = (_jerk_hor_max.get() > _jerk_hor_min.get()) ? _jerk_hor_max.get() : 1000000.f;
@@ -1663,8 +1660,8 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 	float max_acc_z;
 
 	if (_in_smooth_takeoff) {
-		if (acc_z < -_acceleration_z_max_takeoff) {
-			max_acc_z = -_acceleration_z_max_takeoff;
+		if (acc_z < -_acceleration_z_max_takeoff.get()) {
+			max_acc_z = -_acceleration_z_max_takeoff.get();
 
 		} else {
 			_in_smooth_takeoff = false;
