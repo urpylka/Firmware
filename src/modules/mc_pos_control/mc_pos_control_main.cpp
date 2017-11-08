@@ -1663,7 +1663,6 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 
 	} else if (_in_smooth_takeoff) {
 		max_acc_z = (acc_z < 0.0f) ? -_acceleration_z_max_takeoff.get() : _acceleration_z_max_takeoff.get();
-		printf("in smooth takeoff! max acc = %f\n", (double)max_acc_z);
 
 	} else {
 		max_acc_z = (acc_z < 0.0f) ? -_acceleration_z_max_up.get() : _acceleration_z_max_down.get();
@@ -1671,10 +1670,6 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 
 	if (fabsf(acc_z) > fabsf(max_acc_z)) {
 		_vel_sp(2) = max_acc_z * dt + _vel_sp_prev(2);
-
-		if (_in_smooth_takeoff) {
-			printf("in smooth takeoff!  sp acc = %f\n", (double)acc_z);
-		}
 	}
 }
 
@@ -2476,11 +2471,6 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 			_vel_sp(2) = 0.5;
 			_going_to_takeoff = false;
 		}
-
-		/* ramp vertical velocity limit up to takeoff speed */
-//		_takeoff_vel_limit += -_vel_sp(2) * dt / _takeoff_ramp_time.get();
-		/* limit vertical velocity to the current ramp value */
-//		_vel_sp(2) = math::max(_vel_sp(2), -_takeoff_vel_limit);
 	}
 
 	/* make sure velocity setpoint is constrained in all directions (xyz) */
@@ -3031,7 +3021,7 @@ MulticopterPositionControl::task_main()
 		_vel_max_xy = _params.vel_max_xy;
 
 		/* reset flags when landed */
-		if (_vehicle_land_detected.landed) {
+		if (_vehicle_land_detected.landed && !_in_smooth_takeoff) {
 			_reset_pos_sp = true;
 			_reset_alt_sp = true;
 			_do_reset_alt_pos_flag = true;
@@ -3072,9 +3062,6 @@ MulticopterPositionControl::task_main()
 		if (!_in_smooth_takeoff && _vehicle_land_detected.landed && _control_mode.flag_armed &&
 		    (in_auto_takeoff() || manual_wants_takeoff())) {
 			_in_smooth_takeoff = true;
-			// This ramp starts negative and goes to positive later because we want to
-			// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
-//			_takeoff_vel_limit = -0.5f;
 			_going_to_takeoff = true;
 		}
 
