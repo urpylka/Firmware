@@ -413,6 +413,18 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
 
 /**
+ * Maximum acceleration for takeoff
+ *
+ * @unit m/s/s
+ * @min 0.5
+ * @max 15
+ * @increment 0.1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ACC_TKO_MAX, 2.5f);
+
+/**
  * Acceleration for auto and for manual
  *
  * @unit m/s/s
@@ -562,15 +574,3 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
-
-/**
- * Position control smooth takeoff ramp time constant
- *
- * Increasing this value will make automatic and manual takeoff slower.
- * If it's too slow the drone might scratch the ground and tip over.
- *
- * @min 0.1
- * @max 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
