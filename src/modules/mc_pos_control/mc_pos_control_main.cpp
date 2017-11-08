@@ -177,7 +177,6 @@ private:
 	control::BlockParamFloat _cruise_speed_90; /**<speed when angle is 90 degrees between prev-current/current-next*/
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 	control::BlockParamFloat _nav_rad; /**< radius that is used by navigator that defines when to update triplets */
-//	control::BlockParamFloat _takeoff_ramp_time; /**< time contant for smooth takeoff ramp */
 	control::BlockParamFloat _jerk_hor_max; /**< maximum jerk in manual controlled mode when braking to zero */
 	control::BlockParamFloat _jerk_hor_min; /**< minimum jerk in manual controlled mode when braking to zero */
 	control::BlockParamFloat _mis_yaw_error; /**< yaw error threshold that is used in mission as update criteria */
@@ -295,7 +294,6 @@ private:
 	float _acceleration_state_dependent_z; /**< acceleration limit applied in manual mode in z */
 	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
 	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
-//	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
@@ -470,7 +468,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_acceleration_state_dependent_z(0.0f),
 	_manual_jerk_limit_xy(1.0f),
 	_manual_jerk_limit_z(1.0f),
-//	_takeoff_vel_limit(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
 	_heading_reset_counter(0)
