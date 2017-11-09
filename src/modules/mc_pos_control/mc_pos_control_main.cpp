@@ -1659,7 +1659,13 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 		max_acc_z = (acc_z < 0.0f) ? -_acceleration_state_dependent_z : _acceleration_state_dependent_z;
 
 	} else if (_in_smooth_takeoff) {
-		max_acc_z = (acc_z < 0.0f) ? -_acceleration_z_max_takeoff.get() : _acceleration_z_max_takeoff.get();
+		if (acc_z < -_acceleration_z_max_takeoff.get()) {
+			max_acc_z = -_acceleration_z_max_takeoff.get();
+
+		} else {
+			_in_smooth_takeoff = false;
+			max_acc_z = (acc_z < 0.0f) ? -_acceleration_z_max_up.get() : _acceleration_z_max_down.get();
+		}
 
 	} else {
 		max_acc_z = (acc_z < 0.0f) ? -_acceleration_z_max_up.get() : _acceleration_z_max_down.get();
