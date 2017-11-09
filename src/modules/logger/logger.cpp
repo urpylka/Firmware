@@ -578,9 +578,9 @@ void Logger::add_default_topics()
 #endif
 
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
-	add_topic("actuator_controls_0", 100);
+	add_topic("actuator_controls_0");
 	add_topic("actuator_controls_1", 100);
-	add_topic("actuator_outputs", 100);
+	add_topic("actuator_outputs");
 	add_topic("airspeed", 200);
 	add_topic("att_pos_mocap", 50);
 	add_topic("battery_status", 500);
