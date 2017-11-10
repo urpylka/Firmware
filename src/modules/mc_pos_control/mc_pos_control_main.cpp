@@ -273,6 +273,7 @@ private:
 	hrt_abstime _last_warn;
 
 	math::Vector<3> _thrust_int;
+	math::Vector<3> _thrust_sp_prev;
 	math::Vector<3> _pos;
 	math::Vector<3> _pos_sp;
 	math::Vector<3> _vel;
@@ -502,6 +503,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_R_setpoint.identity();
 
 	_thrust_int.zero();
+	_thrust_sp_prev.zero();
 
 	_params_handles.thr_min		= param_find("MPC_THR_MIN");
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
@@ -1666,6 +1668,10 @@ MulticopterPositionControl::vel_sp_slewrate(float dt)
 		if (acc_z < -_acceleration_z_max_takeoff) {
 			max_acc_z = -_acceleration_z_max_takeoff;
 
+			_vel_sp(2) = max_acc_z * dt + _vel(2);
+
+			return;
+
 		} else {
 			_in_smooth_takeoff = false;
 			max_acc_z = (acc_z < 0.0f) ? -_acceleration_z_max_up.get() : _acceleration_z_max_down.get();
@@ -2472,19 +2478,6 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 		vel_sp_slewrate(dt);
 	}
 
-	/*  special velocity setpoint limitation for smooth takeoff (after slewrate!) */
-	if (_in_smooth_takeoff) {
-		_in_smooth_takeoff = _params.tko_speed > -_vel_sp(2);
-
-		if (_going_to_takeoff) {
-			_going_to_takeoff = false;
-
-			// This ramp starts negative and goes to positive later because we want to
-			// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
-			_vel_sp(2) = 0.5;
-		}
-	}
-
 	/* make sure velocity setpoint is constrained in all directions (xyz) */
 	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
 
@@ -2660,6 +2653,16 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 		thrust_sp(2) *= att_comp;
 	}
 
+	if (_in_smooth_takeoff) {
+		float thrust_z_dt = (thrust_sp(2) - _thrust_sp_prev(2)) / dt;
+
+		float thrust_z_dt_lim = -1 / _takeoff_ramp_time.get();
+
+		if (thrust_z_dt < thrust_z_dt_lim) {
+			thrust_sp(2) = _thrust_sp_prev(2) + thrust_z_dt_lim * dt;
+		}
+	}
+
 	/* Calculate desired total thrust amount in body z direction. */
 	/* To compensate for excess thrust during attitude tracking errors we
 	 * project the desired thrust force vector F onto the real vehicle's thrust axis in NED:
@@ -2790,6 +2793,8 @@ MulticopterPositionControl::calculate_thrust_setpoint(float dt)
 		_att_sp.roll_body = 0.0f;
 		_att_sp.pitch_body = 0.0f;
 	}
+
+	_thrust_sp_prev = thrust_sp;
 
 	/* save thrust setpoint for logging */
 	_local_pos_sp.acc_x = thrust_sp(0) * CONSTANTS_ONE_G;
@@ -3054,6 +3059,7 @@ MulticopterPositionControl::task_main()
 			_yaw_takeoff = _yaw;
 			_vel_sp_prev.zero();
 			_vel_prev.zero();
+			_thrust_sp_prev.zero();
 
 			/* make sure attitude setpoint output "disables" attitude control
 			 * TODO: we need a defined setpoint to do this properly especially when adjusting the mixer */
