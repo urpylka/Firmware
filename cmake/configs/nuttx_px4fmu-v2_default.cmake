@@ -22,7 +22,7 @@ set(config_module_list
 	drivers/ms5611
 	#drivers/mb12xx
 	#drivers/srf02
-	drivers/sf0x
+	#drivers/sf0x
 	drivers/ll40ls
 	drivers/teraranger
 	drivers/gps
@@ -36,7 +36,7 @@ set(config_module_list
 	drivers/ms4525_airspeed
 	drivers/ms5525_airspeed
 	drivers/sdp3x_airspeed
-	drivers/frsky_telemetry
+	#drivers/frsky_telemetry
 	modules/sensors
 	#drivers/mkblctrl
 	drivers/px4flow

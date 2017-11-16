@@ -319,6 +319,9 @@ private:
 
 	BlockParamInt _airspeed_disabled;	///< airspeed mode parameter
 
+	BlockParamInt _fakeOrigin; // 0 disables fake origin, 1 activates it
+	BlockParamFloat _fakeOriginLat; // sets fake global origin latitude
+	BlockParamFloat _fakeOriginLon; // sets fake global origin longitude
 };
 
 Ekf2::Ekf2():
@@ -430,7 +433,10 @@ Ekf2::Ekf2():
 	_K_pstatic_coef_y(this, "PCOEF_Y"),
 	_K_pstatic_coef_z(this, "PCOEF_Z"),
 	// non EKF2 parameters
-	_airspeed_disabled(this, "FW_ARSP_MODE", false)
+	_airspeed_disabled(this, "FW_ARSP_MODE", false),
+	_fakeOrigin(this, "EKF2_FAKE_ORIGIN", false),
+	_fakeOriginLat(this, "EKF2_LAT", 0.0f),
+	_fakeOriginLon(this, "EKF2_LON", 0.0f)
 {
 }
 
@@ -794,6 +800,12 @@ void Ekf2::run()
 			_ekf.set_is_fixed_wing(!vehicle_status.is_rotary_wing);
 		}
 
+		bool fake_origin = _fakeOrigin.get();
+		if(!(_fusion_mode.get() & MASK_USE_GPS) && fake_origin && !_ekf.global_position_is_valid()) {
+			_ekf.set_fake_origin_flag(fake_origin);
+			_ekf.set_fake_origin_pos(_fakeOriginLat.get(), _fakeOriginLon.get());
+		}
+
 		if (optical_flow_updated) {
 			flow_message flow;
 			flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
@@ -841,7 +853,7 @@ void Ekf2::run()
 
 		// run the EKF update and output
 		if (_ekf.update()) {
-
+			//printf("!!!!!!!!!!!!!\n");
 			// integrate time to monitor time slippage
 			if (_start_time_us == 0) {
 				_start_time_us = now;
@@ -918,6 +930,9 @@ void Ekf2::run()
 			const bool ekf_origin_valid = _ekf.get_ekf_origin(&origin_time, &ekf_origin, &lpos.ref_alt);
 			lpos.xy_global = ekf_origin_valid;
 			lpos.z_global = ekf_origin_valid;
+
+			//printf("_ekf.local_position_is_valid() = %d\n", _ekf.local_position_is_valid());
+			//printf("_ekf.global_position_is_valid() = %d\n", _ekf.global_position_is_valid());
 
 			if (ekf_origin_valid && (origin_time > lpos.ref_timestamp)) {
 				lpos.ref_timestamp = origin_time;

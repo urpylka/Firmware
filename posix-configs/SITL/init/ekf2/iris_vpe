@@ -20,10 +20,11 @@ param set COM_OBL_ACT 2
 param set COM_OBL_RC_ACT 0
 param set COM_OF_LOSS_T 5
 param set COM_RC_IN_MODE 1
-param set EKF2_AID_MASK 1
+param set EKF2_AID_MASK 24
 param set EKF2_ANGERR_INIT 0.01
 param set EKF2_GBIAS_INIT 0.01
 param set EKF2_HGT_MODE 0
+param set EKF2_FAKE_ORIGIN 1
 param set EKF2_MAG_TYPE 1
 param set MAV_TYPE 2
 param set MC_PITCH_P 6
@@ -73,7 +74,6 @@ mavlink stream -r 50 -s ATTITUDE_TARGET -u 14556
 mavlink stream -r 50 -s SERVO_OUTPUT_RAW_0 -u 14556
 mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
-mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
 logger start -e -t
 mavlink boot_complete
 replay trystart

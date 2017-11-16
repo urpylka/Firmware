@@ -870,6 +870,40 @@ PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);
 PARAM_DEFINE_INT32(EKF2_FUSE_BETA, 0);
 
 /**
+* Boolean determining if publishing of a fake global position
+* (e.g for AUTO missions using Optical Flow) should be used
+* by initializing the estimator to the EKF2_LAT/EKF2_LON parameters when global information is unavailable
+*
+* A value of 1 indicates that fake origin is active
+*
+* @group EKF2
+* @boolean
+*/
+PARAM_DEFINE_INT32(EKF2_FAKE_ORIGIN, 0);
+
+/**
+ * Local origin latitude for nav w/o GPS
+ *
+ * @group EKF2
+ * @unit deg
+ * @min -90
+ * @max 90
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(EKF2_LAT, 47.397742f);
+
+/**
+ * Local origin longitude for nav w/o GPS
+ *
+ * @group EKF2
+ * @unit deg
+ * @min -180
+ * @max 180
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(EKF2_LON, 8.545594);
+
+/**
 
  * Time constant of the velocity output prediction and smoothing filter
  *
