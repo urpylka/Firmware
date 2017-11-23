@@ -48,9 +48,9 @@ endif
 #
 # Example usage:
 #
-# make px4fmu-v2_default 			(builds)
-# make px4fmu-v2_default upload 	(builds and uploads)
-# make px4fmu-v2_default test 		(builds and tests)
+# make px4fmu-v2_default			(builds)
+# make px4fmu-v2_default upload		(builds and uploads)
+# make px4fmu-v2_default test		(builds and tests)
 #
 # This tells cmake to build the nuttx px4fmu-v2 default config in the
 # directory build/nuttx_px4fmu-v2_default and then call make
@@ -195,6 +195,7 @@ misc_qgc_extra_firmware: \
 	check_auav-x21_default \
 	check_crazyflie_default \
 	check_mindpx-v2_default \
+	check_minipix_default \
 	check_px4fmu-v2_lpe \
 	check_tap-v1_default \
 	sizes

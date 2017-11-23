@@ -1,0 +1,12 @@
+{
+    "board_id": 20,
+    "magic": "Mini Pix",
+    "description": "Firmware for Radiolink Mini Pix",
+    "image": "",
+    "build_time": 0,
+    "summary": "MINIPIX",
+    "version": "0.1",
+    "image_size": 0,
+    "git_identity": "",
+    "board_revision": 0
+}
