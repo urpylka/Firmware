@@ -98,7 +98,6 @@
 
 
 
-
 /* Devices on the onboard bus.
  *
  * Note that these are unshifted addresses.
@@ -109,7 +108,9 @@
  *
  * PA9  OTG_FS_VBUS VBUS sensing
  */
+/*
 #define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
+*/
 
 /*
  * ADC channels
