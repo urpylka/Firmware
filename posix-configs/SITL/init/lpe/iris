@@ -39,10 +39,14 @@ param set MC_ROLL_P 6
 param set MPC_HOLD_MAX_Z 2.0
 param set MPC_Z_VEL_P 0.6
 param set MPC_Z_VEL_I 0.15
+param set MPC_Z_VEL_MAX_UP 5
 param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
 # GPS only mode
-param set LPE_FUSION 145
+#param set LPE_FUSION 145
+
+param set LPE_FUSION 148
+param set LPE_FAKE_ORIGIN 1
 
 replay tryapplyparams
 simulator start -s
