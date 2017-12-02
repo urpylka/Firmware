@@ -145,6 +145,8 @@ private:
 	control::BlockParamFloat _velocity_hor_manual; /**< target velocity in manual controlled mode at full speed*/
 	control::BlockParamFloat _takeoff_ramp_time; /**< time contant for smooth takeoff ramp */
 
+	control::BlockDerivative _pos_x_deriv;
+	control::BlockDerivative _pos_y_deriv;
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
@@ -162,6 +164,7 @@ private:
 		param_t slow_land_alt1;
 		param_t slow_land_alt2;
 		param_t xy_p;
+		param_t xy_d;
 		param_t xy_vel_p;
 		param_t xy_vel_i;
 		param_t xy_vel_d;
@@ -210,6 +213,7 @@ private:
 		int opt_recover;
 
 		math::Vector<3> pos_p;
+		math::Vector<3> pos_d;
 		math::Vector<3> vel_p;
 		math::Vector<3> vel_i;
 		math::Vector<3> vel_d;
@@ -243,6 +247,7 @@ private:
 
 	math::Vector<3> _pos;
 	math::Vector<3> _pos_sp;
+	math::Vector<3> _pos_err_d;
 	math::Vector<3> _vel;
 	math::Vector<3> _vel_sp;
 	math::Vector<3> _vel_prev;			/**< velocity on previous step */
@@ -409,6 +414,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_target_threshold_xy(this, "TARGET_THRE"),
 	_velocity_hor_manual(this, "VEL_MAN_MAX", true),
 	_takeoff_ramp_time(this, "TKO_RAMP_T", true),
+	_pos_x_deriv(this, "POSD"),
+	_pos_y_deriv(this, "POSD"),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
@@ -444,12 +451,14 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_ref_pos = {};
 
 	_params.pos_p.zero();
+	_params.pos_d.zero();
 	_params.vel_p.zero();
 	_params.vel_i.zero();
 	_params.vel_d.zero();
 
 	_pos.zero();
 	_pos_sp.zero();
+	_pos_err_d.zero();
 
 	_vel.zero();
 	_vel_sp.zero();
@@ -475,6 +484,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.z_vel_max_down	= param_find("MPC_Z_VEL_MAX_DN");
 
 	_params_handles.xy_p		= param_find("MPC_XY_P");
+	_params_handles.xy_d		= param_find("MPC_XY_D");
 	_params_handles.xy_vel_p	= param_find("MPC_XY_VEL_P");
 	_params_handles.xy_vel_i	= param_find("MPC_XY_VEL_I");
 	_params_handles.xy_vel_d	= param_find("MPC_XY_VEL_D");
@@ -572,6 +582,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.xy_p, &v);
 		_params.pos_p(0) = v;
 		_params.pos_p(1) = v;
+		param_get(_params_handles.xy_d, &v);
+		_params.pos_d(0) = v;
+		_params.pos_d(1) = v;
 		param_get(_params_handles.z_p, &v);
 		_params.pos_p(2) = v;
 		param_get(_params_handles.xy_vel_p, &v);
@@ -1613,6 +1626,9 @@ MulticopterPositionControl::update_velocity_derivative()
 		}
 	}
 
+	_pos_err_d(0) = _pos_x_deriv.update(_pos(0));
+	_pos_err_d(1) = _pos_y_deriv.update(_pos(1));
+
 	_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
 	_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
 	_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
@@ -1672,8 +1688,8 @@ MulticopterPositionControl::calculate_velocity_setpoint(float dt)
 
 		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
 		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {
-			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-			_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0) - _pos_err_d(0) * _params.pos_d(0);
+			_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1) - _pos_err_d(1) * _params.pos_d(1);
 
 		} else {
 			_vel_sp(0) = 0.0f;

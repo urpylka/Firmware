@@ -197,6 +197,16 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
 PARAM_DEFINE_FLOAT(MPC_XY_P, 0.95f);
 
 /**
+ * Differential gain for horizontal position error
+ *
+ * @min 0.0
+ * @max 2.0
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_D, 0.5f);
+
+/**
  * Proportional gain for horizontal velocity error
  *
  * @min 0.06
@@ -398,6 +408,17 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.6f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
+
+/**
+ * Low pass filter cut freq. for numerical velocity derivative
+ *
+ * @unit Hz
+ * @min 0.0
+ * @max 10
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_POSD_LP, 5.0f);
 
 /**
  * Maximum horizonal acceleration in velocity controlled modes
