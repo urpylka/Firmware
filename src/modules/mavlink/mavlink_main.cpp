@@ -2052,9 +2052,9 @@ Mavlink::task_main(int argc, char *argv[])
 	case MAVLINK_MODE_ONBOARD:
 		configure_stream("SYS_STATUS", 5.0f);
 		configure_stream("EXTENDED_SYS_STATE", 5.0f);
-		configure_stream("HIGHRES_IMU", 80.0f);
+		configure_stream("HIGHRES_IMU", 120.0f);
 		configure_stream("ATTITUDE", 100.0f);
-		configure_stream("ATTITUDE_QUATERNION", 80.0f);
+		configure_stream("ATTITUDE_QUATERNION", 120.0f);
 		configure_stream("RC_CHANNELS", 20.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 10.0f);
 		configure_stream("ALTITUDE", 10.0f);
@@ -2110,9 +2110,9 @@ Mavlink::task_main(int argc, char *argv[])
 		// Enable a number of interesting streams we want via USB
 		configure_stream("SYS_STATUS", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 2.0f);
-		configure_stream("HIGHRES_IMU", 80.0f);
+		configure_stream("HIGHRES_IMU", 120.0f);
 		configure_stream("ATTITUDE", 50.0f);
-		configure_stream("ATTITUDE_QUATERNION", 80.0f);
+		configure_stream("ATTITUDE_QUATERNION", 120.0f);
 		configure_stream("RC_CHANNELS", 10.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 20.0f);
 		configure_stream("SERVO_OUTPUT_RAW_1", 20.0f);
