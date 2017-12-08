@@ -20,7 +20,7 @@ param set COM_OBL_ACT 2
 param set COM_OBL_RC_ACT 0
 param set COM_OF_LOSS_T 5
 param set COM_RC_IN_MODE 1
-param set EKF2_AID_MASK 24
+param set EKF2_AID_MASK 8
 param set EKF2_FAKE_ORIGIN 1
 param set EKF2_ANGERR_INIT 0.01
 param set EKF2_GBIAS_INIT 0.01

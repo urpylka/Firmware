@@ -853,7 +853,7 @@ void Ekf2::run()
 
 		// run the EKF update and output
 		if (_ekf.update()) {
-			//printf("!!!!!!!!!!!!!\n");
+
 			// integrate time to monitor time slippage
 			if (_start_time_us == 0) {
 				_start_time_us = now;
@@ -930,9 +930,6 @@ void Ekf2::run()
 			const bool ekf_origin_valid = _ekf.get_ekf_origin(&origin_time, &ekf_origin, &lpos.ref_alt);
 			lpos.xy_global = ekf_origin_valid;
 			lpos.z_global = ekf_origin_valid;
-
-			//printf("_ekf.local_position_is_valid() = %d\n", _ekf.local_position_is_valid());
-			//printf("_ekf.global_position_is_valid() = %d\n", _ekf.global_position_is_valid());
 
 			if (ekf_origin_valid && (origin_time > lpos.ref_timestamp)) {
 				lpos.ref_timestamp = origin_time;
