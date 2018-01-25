@@ -392,6 +392,11 @@ then
 		set DATAMAN_OPT "-f /fs/mtd_dataman"
 	fi
 	# waypoint storage
+
+	# This is a fix of waypoint storage problem caused by microSD card
+	# We run dataman in RAM so microSD is not necessary
+	set DATAMAN_OPT -r
+
 	# REBOOTWORK this needs to start in parallel
 	if dataman start $DATAMAN_OPT
 	then
