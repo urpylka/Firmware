@@ -47,6 +47,11 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
+// This is a fix of waypoint storage problem caused by microSD card.
+// We run dataman in RAM so microSD is not necessary, but without
+// this flag we cannot allocate necessary amount of memory
+#define MEMORY_CONSTRAINED_SYSTEM
+
 /* Run time Hardware detection */
 #define BOARD_HAS_SIMPLE_HW_VERSIONING 1
 #define HW_VER_PB4             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN4)
