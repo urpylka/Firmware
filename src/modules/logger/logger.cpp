@@ -604,7 +604,6 @@ void Logger::add_default_topics()
 	add_topic("manual_control_setpoint", 200);
 	add_topic("mission");
 	add_topic("mission_result");
-	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("rate_ctrl_status", 30);
 	add_topic("safety");
@@ -626,6 +625,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_status_flags");
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");
+	add_topic("vehicle_control_mode");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
 
