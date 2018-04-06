@@ -171,7 +171,7 @@ PrecLand::run_state_start()
 	if (_mode == PrecLandMode::Opportunistic) {
 		// could not see the target immediately, so just fall back to normal landing
 		if (!switch_to_state_fallback()) {
-			PX4_ERR("Can't switch to search or fallback landing");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to search or fallback landing");
 		}
 	}
 
@@ -191,14 +191,14 @@ PrecLand::run_state_start()
 			if (hrt_absolute_time() - _point_reached_time > 2000000) {
 				if (!switch_to_state_search()) {
 					if (!switch_to_state_fallback()) {
-						PX4_ERR("Can't switch to search or fallback landing");
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to search or fallback landing");
 					}
 				}
 			}
 
 		} else {
 			if (!switch_to_state_fallback()) {
-				PX4_ERR("Can't switch to search or fallback landing");
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to search or fallback landing");
 			}
 		}
 	}
@@ -211,7 +211,7 @@ PrecLand::run_state_horizontal_approach()
 
 	// check if target visible, if not go to start
 	if (!check_state_conditions(PrecLandState::HorizontalApproach)) {
-		PX4_WARN("Lost landing target while landing (horizontal approach).");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Lost landing target while landing (horizontal approach).");
 
 		// Stay at current position for searching for the landing target
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
@@ -220,7 +220,7 @@ PrecLand::run_state_horizontal_approach()
 
 		if (!switch_to_state_start()) {
 			if (!switch_to_state_fallback()) {
-				PX4_ERR("Can't switch to fallback landing");
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to search or fallback landing");
 			}
 		}
 
@@ -242,13 +242,13 @@ PrecLand::run_state_horizontal_approach()
 	}
 
 	if (hrt_absolute_time() - _state_start_time > STATE_TIMEOUT) {
-		PX4_ERR("Precision landing took too long during horizontal approach phase.");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Precision landing took too long during horizontal approach phase.");
 
 		if (switch_to_state_fallback()) {
 			return;
 		}
 
-		PX4_ERR("Can't switch to fallback landing");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to fallback landing");
 	}
 
 	float x = _target_pose.x_abs;
@@ -276,7 +276,7 @@ PrecLand::run_state_descend_above_target()
 	// check if target visible
 	if (!check_state_conditions(PrecLandState::DescendAboveTarget)) {
 		if (!switch_to_state_final_approach()) {
-			PX4_WARN("Lost landing target while landing (descending).");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Lost landing target while landing (descending).");
 
 			// Stay at current position for searching for the target
 			pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
@@ -285,7 +285,7 @@ PrecLand::run_state_descend_above_target()
 
 			if (!switch_to_state_start()) {
 				if (!switch_to_state_fallback()) {
-					PX4_ERR("Can't switch to fallback landing");
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to fallback landing");
 				}
 			}
 		}
@@ -337,10 +337,10 @@ PrecLand::run_state_search()
 
 	// check if search timed out and go to fallback
 	if (hrt_absolute_time() - _state_start_time > _param_search_timeout.get()*SEC2USEC) {
-		PX4_WARN("Search timed out");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Search timed out");
 
 		if (!switch_to_state_fallback()) {
-			PX4_ERR("Can't switch to fallback landing");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to fallback landing");
 		}
 	}
 }
