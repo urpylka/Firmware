@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,46 +32,29 @@
  ****************************************************************************/
 
 /**
- * @file tailsitter_recovery.h
+ * @file FlightManualAltitude.hpp
  *
- * Tailsitter optimal rate controller (underactuated pitch axis)
- *
- * This function can be used to compute desired body rates of a tailsitter
- * suffering from an underactuated pitch axis. Tailsitters which produce a pitching moment
- * from airflow over control surfaces mostly suffer from an underactuated pitch axis.
- * This functions captures the solution of an optimal control problem which minimises
- * the vehicle's tilt error and which penalises the desired rates of the underactuated
- * pitch axis.
- * Publication:
- * Robin Ritz and Raffaello D'Andrea. A Global Strategy for Tailsitter Hover Control.
- *
- * @author Roman Bapst <bapstroman@gmail.com>
-*/
+ * Flight task for manual controlled altitude.
+ */
 
 #pragma once
 
-#include <lib/mathlib/mathlib.h>
+#include "FlightTaskManualStabilized.hpp"
 
-#define SigmoidFunction(val) 1/(1 + expf(-val))
-
-class TailsitterRecovery
+class FlightTaskManualAltitude : public FlightTaskManualStabilized
 {
 public:
-	TailsitterRecovery();
-	~TailsitterRecovery();
+	FlightTaskManualAltitude(control::SuperBlock *parent, const char *name);
 
-	// Calculate the optimal rates:
-	// If the vehicle is not in need of a recovery, this function will do normal
-	// attitude control based on attitude error. If a recovery situation is detected
-	// then the rates are computed in an optimal way as described above.
-	void calcOptimalRates(math::Quaternion &q, math::Quaternion &q_sp, float yaw_move_rate, math::Vector<3> &rates_opt);
+	virtual ~FlightTaskManualAltitude() = default;
 
-	// Set the gains of the controller attitude loop.
-	void setAttGains(math::Vector<3> &att_p, float yaw_ff);
+protected:
+	control::BlockParamFloat _vel_max_down; /**< maximum speed allowed to go up */
+	control::BlockParamFloat _vel_max_up; /**< maximum speed allowed to go down */
+	control::BlockParamFloat _vel_hold_thr_z; /**< velocity threshold to switch back into vertical position hold */
 
-private:
-	bool _in_recovery_mode;	// indicates that the tailsitter is performing a recovery to hover
+	void _updateAltitudeLock(); /**< checks for position lock */
+	void _updateSetpoints() override; /**< updates all setpoints */
+	void _scaleSticks() override; /**< scales sticks to velocity in z */
 
-	math::Vector<3> _att_p;	// gains for attitude loop
-	float _yaw_ff;			// yaw feed forward gain
 };

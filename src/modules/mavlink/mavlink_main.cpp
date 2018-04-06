@@ -69,7 +69,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <dataman/dataman.h>
 #include <version/version.h>
 
@@ -1393,17 +1393,15 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 		return OK;
 	}
 
-	/* search for stream with specified name in supported streams list */
-	for (unsigned int i = 0; streams_list[i] != nullptr; i++) {
+	// search for stream with specified name in supported streams list
+	// create new instance if found
+	stream = create_mavlink_stream(stream_name, this);
 
-		if (strcmp(stream_name, streams_list[i]->get_name()) == 0) {
-			/* create new instance */
-			stream = streams_list[i]->new_instance(this);
-			stream->set_interval(interval);
-			LL_APPEND(_streams, stream);
+	if (stream != nullptr) {
+		stream->set_interval(interval);
+		LL_APPEND(_streams, stream);
 
-			return OK;
-		}
+		return OK;
 	}
 
 	/* if we reach here, the stream list does not contain the stream */

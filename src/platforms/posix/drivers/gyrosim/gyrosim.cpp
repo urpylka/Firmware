@@ -506,8 +506,11 @@ GYROSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 
 		// FIXME - not sure what interrupt status should be
 		recv[1] = 0;
+
 		// skip cmd and status bytes
-		sim->getMPUReport(&recv[2], len - 2);
+		if (len > 2) {
+			sim->getMPUReport(&recv[2], len - 2);
+		}
 
 	} else if (cmd & DIR_READ) {
 		PX4_DEBUG("Reading %u bytes from register %u", len - 1, reg);
@@ -1050,8 +1053,8 @@ GYROSIM::_measure()
 	arb.y = mpu_report.accel_y;
 	arb.z = mpu_report.accel_z;
 
-	math::Vector<3> aval(mpu_report.accel_x, mpu_report.accel_y, mpu_report.accel_z);
-	math::Vector<3> aval_integrated;
+	matrix::Vector3f aval(mpu_report.accel_x, mpu_report.accel_y, mpu_report.accel_z);
+	matrix::Vector3f aval_integrated;
 
 	bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
 	arb.x_integral = aval_integrated(0);
@@ -1075,8 +1078,8 @@ GYROSIM::_measure()
 	grb.y = mpu_report.gyro_y;
 	grb.z = mpu_report.gyro_z;
 
-	math::Vector<3> gval(mpu_report.gyro_x, mpu_report.gyro_y, mpu_report.gyro_z);
-	math::Vector<3> gval_integrated;
+	matrix::Vector3f gval(mpu_report.gyro_x, mpu_report.gyro_y, mpu_report.gyro_z);
+	matrix::Vector3f gval_integrated;
 
 	bool gyro_notify = _gyro_int.put(grb.timestamp, gval, gval_integrated, grb.integral_dt);
 	grb.x_integral = gval_integrated(0);

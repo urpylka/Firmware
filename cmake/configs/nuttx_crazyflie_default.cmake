@@ -83,13 +83,12 @@ set(config_module_list
 	lib/conversion
 	lib/DriverFramework/framework
 	lib/ecl
-	lib/geo
-	lib/geo_lookup
 	lib/mathlib
 	lib/mixer
 	lib/rc
 	lib/terrain_estimation
 	lib/version
+	lib/FlightTasks
 
 	#
 	# OBC challenge

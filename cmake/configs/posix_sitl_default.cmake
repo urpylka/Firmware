@@ -88,6 +88,7 @@ set(config_module_list
 	modules/ekf2
 	modules/local_position_estimator
 	modules/position_estimator_inav
+	modules/wind_estimator
 
 	#
 	# Vehicle Control
@@ -122,8 +123,6 @@ set(config_module_list
 	lib/conversion
 	lib/DriverFramework/framework
 	lib/ecl
-	lib/geo
-	lib/geo_lookup
 	lib/led
 	lib/mixer
 	lib/mathlib
@@ -131,6 +130,7 @@ set(config_module_list
 	lib/terrain_estimation
 	lib/tunes
 	lib/version
+	lib/FlightTasks
 
 	#
 	# OBC challenge

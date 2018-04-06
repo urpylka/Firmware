@@ -317,10 +317,7 @@ BATT_SMBUS::test()
 
 		if (updated) {
 			if (orb_copy(ORB_ID(battery_status), sub, &status) == OK) {
-				PX4_INFO("V=%4.2f C=%4.2f AveC=%4.2f DismAh=%f Cap:%hu TempC:%4.2f Remaining:%3.2f\n RunTimeToEmpty:%hu AveTimeToEmpty:%hu CycleCount:%hu SerialNum:%04x",
-					 (double)status.voltage_v, (double)status.current_a, (double)status.average_current_a, (double)status.discharged_mah,
-					 (uint16_t)status.capacity, (double)status.temperature, (double)status.remaining, (uint16_t)status.run_time_to_empty,
-					 (uint16_t)status.average_time_to_empty, (uint16_t)status.cycle_count, (uint16_t)status.serial_number);
+				print_message(status);
 			}
 		}
 
@@ -541,19 +538,19 @@ BATT_SMBUS::cycle()
 		}
 
 		// read remaining capacity
-		if (_batt_capacity > 0) {
-			if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
+		if (read_reg(BATT_SMBUS_REMAINING_CAPACITY, tmp) == OK) {
 
-				if (tmp > _batt_capacity) {
-					PX4_WARN("Remaining Cap greater than total: Cap:%hu RemainingCap:%hu", (uint16_t)_batt_capacity, (uint16_t)tmp);
-					_batt_capacity = (uint16_t)tmp;
-				}
-
-				new_report.remaining = (float)(1.000f - (((float)_batt_capacity - (float)tmp) / (float)_batt_capacity));
-
-				// calculate total discharged amount
-				new_report.discharged_mah = (float)((float)_batt_startup_capacity - (float)tmp);
+			if (tmp > _batt_capacity) {
+				PX4_WARN("Remaining Cap greater than total: Cap:%hu RemainingCap:%hu", (uint16_t)_batt_capacity, (uint16_t)tmp);
+				_batt_capacity = (uint16_t)tmp;
 			}
+
+			// Calculate remaining capacity percent with complementary filter
+			new_report.remaining = (float)(_last_report.remaining * 0.8f) + (float)(0.2f * (float)(1.000f - (((
+						       float)_batt_capacity - (float)tmp) / (float)_batt_capacity)));
+
+			// calculate total discharged amount
+			new_report.discharged_mah = (float)((float)_batt_startup_capacity - (float)tmp);
 		}
 
 		// read battery temperature and covert to Celsius
@@ -561,18 +558,30 @@ BATT_SMBUS::cycle()
 			new_report.temperature = (float)(((float)tmp / 10.0f) - 273.15f);
 		}
 
-		// propagate warning state only if the state
-		if (new_report.remaining < _emergency_thr) {
+		//Check if remaining % is out of range
+		if ((new_report.remaining > 1.00f) || (new_report.remaining <= 0.00f)) {
 			new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+		}
 
-		} else if (new_report.remaining < _crit_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+		//Check if discharged amount is greater than the starting capacity
+		else if (new_report.discharged_mah > (float)_batt_startup_capacity) {
+			new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+		}
 
-		} else if (new_report.remaining < _low_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_LOW;
+		// propagate warning state
+		else {
+			if (new_report.remaining > _low_thr) {
+				new_report.warning = battery_status_s::BATTERY_WARNING_NONE;
 
-		} else {
-			new_report.warning = battery_status_s::BATTERY_WARNING_NONE;
+			} else if (new_report.remaining > _crit_thr) {
+				new_report.warning = battery_status_s::BATTERY_WARNING_LOW;
+
+			} else if (new_report.remaining > _emergency_thr) {
+				new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+
+			} else {
+				new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+			}
 		}
 
 		new_report.capacity = _batt_capacity;

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,43 +32,29 @@
  ****************************************************************************/
 
 /**
- * @file Limits.cpp
+ * @file FlightTaskManualPosition.hpp
  *
- * Limiting / constrain helper functions
+ * Flight task for manual position controlled mode.
+ *
  */
 
+#pragma once
 
-#include <math.h>
-#include <stdint.h>
+#include "FlightTaskManualAltitude.hpp"
 
-#include "Limits.hpp"
-
-
-namespace math
+class FlightTaskManualPosition : public FlightTaskManualAltitude
 {
+public:
+	FlightTaskManualPosition(control::SuperBlock *parent, const char *name);
 
-#if !defined(CONFIG_ARCH_ARM) && !defined(__PX4_POSIX)
-#define M_PI_F 3.14159265358979323846f
-#endif
+	virtual ~FlightTaskManualPosition() = default;
 
-float __EXPORT radians(float degrees)
-{
-	return (degrees / 180.0f) * M_PI_F;
-}
+protected:
+	control::BlockParamFloat _vel_xy_manual_max; /**< maximum speed allowed horizontally */
+	control::BlockParamFloat _acc_xy_max;/**< maximum acceleration horizontally. Only used to compute lock time */
+	control::BlockParamFloat _vel_hold_thr_xy; /**< velocity threshold to switch back into horizontal position hold */
 
-double __EXPORT radians(double degrees)
-{
-	return (degrees / 180.0) * M_PI;
-}
-
-float __EXPORT degrees(float radians)
-{
-	return (radians / M_PI_F) * 180.0f;
-}
-
-double __EXPORT degrees(double radians)
-{
-	return (radians / M_PI) * 180.0;
-}
-
-}
+	void _updateXYlock(); /**< applies positon lock based on stick and velocity */
+	void _updateSetpoints() override;
+	void _scaleSticks() override;
+};

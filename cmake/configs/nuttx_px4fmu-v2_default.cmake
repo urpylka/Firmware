@@ -50,14 +50,14 @@ set(config_module_list
 	drivers/vmount
 
 	# distance sensors
-	drivers/distance_sensor/ll40ls
-	drivers/distance_sensor/mb12xx
-	drivers/distance_sensor/sf0x
-	drivers/distance_sensor/sf1xx
-	drivers/distance_sensor/srf02
-	drivers/distance_sensor/srf02_i2c
-	drivers/distance_sensor/teraranger
-	drivers/distance_sensor/tfmini
+	#drivers/distance_sensor/ll40ls
+	#drivers/distance_sensor/mb12xx
+	#drivers/distance_sensor/sf0x
+	#drivers/distance_sensor/sf1xx
+	#drivers/distance_sensor/srf02
+	#drivers/distance_sensor/srf02_i2c
+	#drivers/distance_sensor/teraranger
+	#drivers/distance_sensor/tfmini
 	#drivers/distance_sensor/ulanding
 	modules/sensors
 
@@ -119,6 +119,7 @@ set(config_module_list
 	#modules/local_position_estimator
 	#modules/position_estimator_inav
 	#modules/landing_target_estimator
+	#modules/wind_estimator
 
 	#
 	# Vehicle Control
@@ -152,14 +153,13 @@ set(config_module_list
 	lib/conversion
 	lib/DriverFramework/framework
 	lib/ecl
-	lib/geo
-	lib/geo_lookup
 	lib/led
 	lib/mathlib
 	lib/mixer
 	#lib/terrain_estimation
 	lib/tunes
 	lib/version
+	lib/FlightTasks
 
 	#
 	# OBC challenge

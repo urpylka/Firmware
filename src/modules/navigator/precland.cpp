@@ -57,22 +57,11 @@
 
 #define SEC2USEC 1000000.0f
 
-#define STATE_TIMEOUT 10000000 // [us] Maximum time to spend in any state
+#define STATE_TIMEOUT 60000000 // [us] Maximum time to spend in any state
 
 PrecLand::PrecLand(Navigator *navigator) :
 	MissionBlock(navigator),
-	ModuleParams(navigator),
-	_targetPoseSub(0),
-	_target_pose_valid(false),
-	_state_start_time(0),
-	_search_cnt(0),
-	_approach_alt(0)
-
-{
-}
-
-void
-PrecLand::on_inactive()
+	ModuleParams(navigator)
 {
 }
 
@@ -80,8 +69,8 @@ void
 PrecLand::on_activation()
 {
 	// We need to subscribe here and not in the constructor because constructor is called before the navigator task is spawned
-	if (!_targetPoseSub) {
-		_targetPoseSub = orb_subscribe(ORB_ID(landing_target_pose));
+	if (_target_pose_sub < 0) {
+		_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
 	}
 
 	_state = PrecLandState::Start;
@@ -119,15 +108,14 @@ void
 PrecLand::on_active()
 {
 	// get new target measurement
-	bool updated = false;
-	orb_check(_targetPoseSub, &updated);
+	orb_check(_target_pose_sub, &_target_pose_updated);
 
-	if (updated) {
-		orb_copy(ORB_ID(landing_target_pose), _targetPoseSub, &_target_pose);
+	if (_target_pose_updated) {
+		orb_copy(ORB_ID(landing_target_pose), _target_pose_sub, &_target_pose);
 		_target_pose_valid = true;
 	}
 
-	if (hrt_absolute_time() - _target_pose.timestamp > (uint64_t)(_param_timeout.get()*SEC2USEC)) {
+	if ((hrt_elapsed_time(&_target_pose.timestamp) / 1e6f) > _param_timeout.get()) {
 		_target_pose_valid = false;
 	}
 
@@ -183,7 +171,7 @@ PrecLand::run_state_start()
 	if (_mode == PrecLandMode::Opportunistic) {
 		// could not see the target immediately, so just fall back to normal landing
 		if (!switch_to_state_fallback()) {
-			PX4_ERR("Can't switch to search or fallback landing");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to search or fallback landing");
 		}
 	}
 
@@ -203,14 +191,14 @@ PrecLand::run_state_start()
 			if (hrt_absolute_time() - _point_reached_time > 2000000) {
 				if (!switch_to_state_search()) {
 					if (!switch_to_state_fallback()) {
-						PX4_ERR("Can't switch to search or fallback landing");
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to search or fallback landing");
 					}
 				}
 			}
 
 		} else {
 			if (!switch_to_state_fallback()) {
-				PX4_ERR("Can't switch to search or fallback landing");
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to search or fallback landing");
 			}
 		}
 	}
@@ -223,7 +211,7 @@ PrecLand::run_state_horizontal_approach()
 
 	// check if target visible, if not go to start
 	if (!check_state_conditions(PrecLandState::HorizontalApproach)) {
-		PX4_WARN("Lost landing target while landig (horizontal approach).");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Lost landing target while landing (horizontal approach).");
 
 		// Stay at current position for searching for the landing target
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
@@ -232,7 +220,7 @@ PrecLand::run_state_horizontal_approach()
 
 		if (!switch_to_state_start()) {
 			if (!switch_to_state_fallback()) {
-				PX4_ERR("Can't switch to fallback landing");
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to search or fallback landing");
 			}
 		}
 
@@ -254,13 +242,13 @@ PrecLand::run_state_horizontal_approach()
 	}
 
 	if (hrt_absolute_time() - _state_start_time > STATE_TIMEOUT) {
-		PX4_ERR("Precision landing took too long during horizontal approach phase.");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Precision landing took too long during horizontal approach phase.");
 
 		if (switch_to_state_fallback()) {
 			return;
 		}
 
-		PX4_ERR("Can't switch to fallback landing");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to fallback landing");
 	}
 
 	float x = _target_pose.x_abs;
@@ -278,7 +266,6 @@ PrecLand::run_state_horizontal_approach()
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
 	_navigator->set_position_setpoint_triplet_updated();
-
 }
 
 void
@@ -289,7 +276,7 @@ PrecLand::run_state_descend_above_target()
 	// check if target visible
 	if (!check_state_conditions(PrecLandState::DescendAboveTarget)) {
 		if (!switch_to_state_final_approach()) {
-			PX4_WARN("Lost landing target while landing (descending).");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Lost landing target while landing (descending).");
 
 			// Stay at current position for searching for the target
 			pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
@@ -298,7 +285,7 @@ PrecLand::run_state_descend_above_target()
 
 			if (!switch_to_state_start()) {
 				if (!switch_to_state_fallback()) {
-					PX4_ERR("Can't switch to fallback landing");
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to fallback landing");
 				}
 			}
 		}
@@ -316,7 +303,6 @@ PrecLand::run_state_descend_above_target()
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 
 	_navigator->set_position_setpoint_triplet_updated();
-
 }
 
 void
@@ -351,10 +337,10 @@ PrecLand::run_state_search()
 
 	// check if search timed out and go to fallback
 	if (hrt_absolute_time() - _state_start_time > _param_search_timeout.get()*SEC2USEC) {
-		PX4_WARN("Search timed out");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Search timed out");
 
 		if (!switch_to_state_fallback()) {
-			PX4_ERR("Can't switch to fallback landing");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Can't switch to fallback landing");
 		}
 	}
 }
@@ -491,7 +477,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		}
 
 		// If we're trying to switch to this state, the target needs to be visible
-		return _target_pose_valid && _target_pose.abs_pos_valid;
+		return _target_pose_updated && _target_pose.abs_pos_valid;
 
 	case PrecLandState::DescendAboveTarget:
 
@@ -507,7 +493,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 		} else {
 			// if not already in this state, need to be above target to enter it
-			return _target_pose_valid && _target_pose.abs_pos_valid
+			return _target_pose_updated && _target_pose.abs_pos_valid
 			       && fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
 			       && fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_hacc_rad.get();
 		}

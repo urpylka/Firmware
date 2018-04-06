@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 MAV GEO Library (MAVGEO). All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name MAVGEO nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,16 +32,43 @@
  ****************************************************************************/
 
 /**
-* @file geo_mag_declination.h
-*
-* Calculation / lookup table for earth magnetic field declination.
-*
-*/
+ * @file FlightManualStabilized.hpp
+ *
+ * Flight task for manual controlled attitude.
+ * It generates thrust and yaw setpoints.
+ */
 
 #pragma once
 
-__BEGIN_DECLS
+#include "FlightTaskManual.hpp"
 
-__EXPORT float get_mag_declination(float lat, float lon);
+class FlightTaskManualStabilized : public FlightTaskManual
+{
+public:
+	FlightTaskManualStabilized(control::SuperBlock *parent, const char *name);
 
-__END_DECLS
+	virtual ~FlightTaskManualStabilized() = default;
+
+	bool activate() override;
+
+	bool update() override;
+
+protected:
+	virtual void _updateSetpoints(); /**< updates all setpoints*/
+	virtual void _scaleSticks(); /**< scales sticks to yaw and thrust */
+	void _rotateIntoHeadingFrame(matrix::Vector2f &vec); /**< rotates vector into local frame */
+
+private:
+
+	float _throttle{}; /** mapped from stick z */
+
+	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
+	void _updateThrustSetpoints(); /**< sets thrust setpoint */
+	float _throttleCurve(); /**< piecewise linear mapping from stick to throttle */
+
+	control::BlockParamFloat _yaw_rate_scaling; /**< scaling factor from stick to yaw rate */
+	control::BlockParamFloat _tilt_max_man; /**< maximum tilt allowed for manual flight */
+	control::BlockParamFloat _throttle_min; /**< minimum throttle that always has to be satisfied in flight*/
+	control::BlockParamFloat _throttle_max; /**< maximum throttle that always has to be satisfied in flight*/
+	control::BlockParamFloat _throttle_hover; /**< throttle value at which vehicle is at hover equilibrium */
+};

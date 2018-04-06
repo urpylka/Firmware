@@ -42,7 +42,7 @@ set(srcs
 	test_float.cpp
 	test_gpio.c
 	test_hott_telemetry.c
-	test_hrt.c
+	test_hrt.cpp
 	test_hysteresis.cpp
 	test_int.cpp
 	test_jig_voltages.c
@@ -64,6 +64,7 @@ set(srcs
 	test_uart_loopback.c
 	test_uart_send.c
 	test_versioning.cpp
+	test_smooth_z.cpp
 	tests_main.c
 	)
 

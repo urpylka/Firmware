@@ -1569,8 +1569,8 @@ LSM303D::measure()
 	accel_report.y = _accel_filter_y.apply(y_in_new);
 	accel_report.z = _accel_filter_z.apply(z_in_new);
 
-	math::Vector<3> aval(x_in_new, y_in_new, z_in_new);
-	math::Vector<3> aval_integrated;
+	matrix::Vector3f aval(x_in_new, y_in_new, z_in_new);
+	matrix::Vector3f aval_integrated;
 
 	bool accel_notify = _accel_int.put(accel_report.timestamp, aval, aval_integrated, accel_report.integral_dt);
 	accel_report.x_integral = aval_integrated(0);
@@ -1965,15 +1965,7 @@ test()
 		err(1, "immediate read failed");
 	}
 
-
-	warnx("accel x: \t% 9.5f\tm/s^2", (double)accel_report.x);
-	warnx("accel y: \t% 9.5f\tm/s^2", (double)accel_report.y);
-	warnx("accel z: \t% 9.5f\tm/s^2", (double)accel_report.z);
-	warnx("accel x: \t%d\traw", (int)accel_report.x_raw);
-	warnx("accel y: \t%d\traw", (int)accel_report.y_raw);
-	warnx("accel z: \t%d\traw", (int)accel_report.z_raw);
-
-	warnx("accel range: %8.4f m/s^2", (double)accel_report.range_m_s2);
+	print_message(accel_report);
 
 	int fd_mag = -1;
 	struct mag_report m_report;
@@ -1999,13 +1991,7 @@ test()
 		err(1, "immediate read failed");
 	}
 
-	warnx("mag x: \t% 9.5f\tga", (double)m_report.x);
-	warnx("mag y: \t% 9.5f\tga", (double)m_report.y);
-	warnx("mag z: \t% 9.5f\tga", (double)m_report.z);
-	warnx("mag x: \t%d\traw", (int)m_report.x_raw);
-	warnx("mag y: \t%d\traw", (int)m_report.y_raw);
-	warnx("mag z: \t%d\traw", (int)m_report.z_raw);
-	warnx("mag range: %8.4f ga", (double)m_report.range_ga);
+	print_message(m_report);
 
 	/* reset to default polling */
 	if (ioctl(fd_accel, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
