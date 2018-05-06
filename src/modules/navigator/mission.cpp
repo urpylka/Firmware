@@ -147,6 +147,8 @@ Mission::on_inactivation()
 void
 Mission::on_activation()
 {
+	PX4_INFO("Mission::on_activation(), set_mission_items()");
+
 	set_mission_items();
 
 	// unpause triggering if it was paused
@@ -181,11 +183,15 @@ Mission::on_active()
 
 	/* reset mission items if needed */
 	if (offboard_updated) {
+		PX4_INFO("offboard_updated, set_mission_items()");
 		set_mission_items();
 	}
 
 	/* lets check if we reached the current mission item */
-	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
+	bool reached = is_mission_item_reached();
+	// PX4_INFO("Mission item reached? %d", reached);
+
+	if (_mission_type != MISSION_TYPE_NONE && reached) {
 		/* If we just completed a takeoff which was inserted before the right waypoint,
 		   there is no need to report that we reached it because we didn't. */
 		if (_work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
@@ -194,6 +200,7 @@ Mission::on_active()
 
 		if (_mission_item.autocontinue) {
 			/* switch to next waypoint if 'autocontinue' flag set */
+			PX4_INFO("mission item reached, set_mission_items()");
 			advance_mission();
 			set_mission_items();
 		}
@@ -239,6 +246,19 @@ Mission::on_active()
 
 		} else {
 			_navigator->get_precland()->on_active();
+		}
+	}
+
+	if (_mission_item.nav_cmd == NAV_CMD_CHARGING_STATION_ACTION) {
+		_navigator->get_charging_station()->on_active();
+
+		if (_navigator->get_charging_station()->is_mission_item_reached()) {
+			if (_mission_item.autocontinue) {
+				/* switch to next waypoint if 'autocontinue' flag set */
+				advance_mission();
+				set_mission_items();
+				return;
+			}
 		}
 	}
 }
@@ -791,6 +811,11 @@ Mission::set_mission_items()
 			copy_positon_if_valid(&_mission_item, &pos_sp_triplet->current);
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0;
+		}
+
+		if (_mission_item.nav_cmd == NAV_CMD_CHARGING_STATION_ACTION) {
+			_navigator->get_charging_station()->set_params(_mission_item.params[0], _mission_item.params[1]);
+			_navigator->get_charging_station()->on_activation();
 		}
 	}
 

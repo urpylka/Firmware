@@ -78,6 +78,7 @@
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/collision_report.h>
 #include <uORB/topics/obstacle_distance.h>
+#include <uORB/topics/charging_station_state.h>
 
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
@@ -238,6 +239,7 @@ private:
 	static const int _gps_inject_data_queue_size = 6;
 	orb_advert_t _gps_inject_data_pub;
 	orb_advert_t _command_ack_pub;
+	orb_advert_t _charging_station_state_pub;
 	int _control_mode_sub;
 	int _actuator_armed_sub;
 	uint64_t _global_ref_timestamp;
