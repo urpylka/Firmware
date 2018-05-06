@@ -589,7 +589,9 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 		.from_external = true,
 		.result_param1 = ack.progress,
 		.target_system = ack.target_system,
-		.target_component = ack.target_component
+		.target_component = ack.target_component,
+		.source_system = msg->sysid,
+		.source_component = msg->compid
 	};
 
 	if (_command_ack_pub == nullptr) {
@@ -1654,6 +1656,18 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			} else {
 				orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
 			}
+
+		} else if (hb.type == MAV_TYPE_CHARGING_STATION) {
+			/* recieved charging station heartbeat */
+			struct charging_station_state_s state;
+			state.id = msg->sysid;
+			state.base_mode = hb.base_mode;
+			state.custom_mode = hb.custom_mode;
+			state.timestamp = hrt_absolute_time();
+
+			int instance = 0;
+			orb_publish_auto(ORB_ID(charging_station_state), &_charging_station_state_pub, &state, &instance, ORB_PRIO_DEFAULT);
+
 		}
 	}
 }

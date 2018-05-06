@@ -291,7 +291,8 @@ MissionFeasibilityChecker::checkMissionItemValidity(dm_item_t dm_current, size_t
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_DIST &&
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
 		    missionitem.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
-		    missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
+		    missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION &&
+		    missionitem.nav_cmd != NAV_CMD_CHARGING_STATION_ACTION) {
 
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: item %i: unsupported cmd: %d", (int)(i + 1),
 					     (int)missionitem.nav_cmd);

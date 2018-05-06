@@ -97,6 +97,7 @@ Navigator::Navigator() :
 	_engineFailure(this, "EF"),
 	_gpsFailure(this, "GPSF"),
 	_follow_target(this, "TAR"),
+	_charging_station(this),
 	// navigator params
 	_param_loiter_radius(this, "LOITER_RAD"),
 	_param_acceptance_radius(this, "ACC_RAD"),
@@ -1183,6 +1184,23 @@ Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 		vcmd->target_component = _vstatus.component_id;
 		break;
 	}
+
+	if (_vehicle_cmd_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, vcmd);
+
+	} else {
+		_vehicle_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+	}
+}
+
+void
+Navigator::publish_vehicle_cmd_to_external(vehicle_command_s *vcmd)
+{
+	vcmd->timestamp = hrt_absolute_time();
+	vcmd->source_system = _vstatus.system_id;
+	vcmd->source_component = _vstatus.component_id;
+	vcmd->confirmation = false;
+	vcmd->from_external = false;
 
 	if (_vehicle_cmd_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, vcmd);
