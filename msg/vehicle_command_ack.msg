@@ -21,3 +21,5 @@ uint8 result_param1
 int32 result_param2
 uint8 target_system
 uint8 target_component
+uint8 source_system
+uint8 source_component
