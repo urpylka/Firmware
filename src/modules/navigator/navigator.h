@@ -54,6 +54,7 @@
 #include "rcloss.h"
 #include "rtl.h"
 #include "takeoff.h"
+#include "charging_station.h"
 
 #include <navigator/navigation.h>
 #include <px4_module_params.h>
@@ -117,6 +118,8 @@ public:
 
 	void		publish_vehicle_cmd(vehicle_command_s *vcmd);
 
+	void 		publish_vehicle_cmd_to_external(vehicle_command_s *vcmd);
+
 	/**
 	 * Generate an artificial traffic indication
 	 *
@@ -156,6 +159,7 @@ public:
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
+	ChargingStation *get_charging_station() { return &_charging_station; }
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
@@ -241,6 +245,8 @@ public:
 	float		get_acceptance_radius(float mission_item_radius);
 
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
+
+	orb_advert_t	*get_vehicle_command_pub() { return &_vehicle_cmd_pub; }
 
 	void		increment_mission_instance_count() { _mission_result.instance_count++; }
 
@@ -330,6 +336,7 @@ private:
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 	FollowTarget	_follow_target;
+	ChargingStation	_charging_station;
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 

@@ -53,6 +53,7 @@ px4_add_module(
 		enginefailure.cpp
 		gpsfailure.cpp
 		follow_target.cpp
+		charging_station.cpp
 	DEPENDS
 		platforms__common
 	)
