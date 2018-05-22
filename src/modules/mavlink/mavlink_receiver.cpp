@@ -138,6 +138,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_debug_vect_pub(nullptr),
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
+	_charging_station_state_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_actuator_armed_sub(orb_subscribe(ORB_ID(actuator_armed))),
 	_global_ref_timestamp(0),
@@ -1716,11 +1717,15 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			state.id = msg->sysid;
 			state.base_mode = hb.base_mode;
 			state.custom_mode = hb.custom_mode;
+			state.system_status = hb.system_status;
 			state.timestamp = hrt_absolute_time();
 
-			int instance = 0;
-			orb_publish_auto(ORB_ID(charging_station_state), &_charging_station_state_pub, &state, &instance, ORB_PRIO_DEFAULT);
+			if (_charging_station_state_pub == nullptr) {
+				_charging_station_state_pub = orb_advertise(ORB_ID(charging_station_state), &state);
 
+			} else {
+				orb_publish(ORB_ID(charging_station_state), _charging_station_state_pub, &state);
+			}
 		}
 	}
 }
