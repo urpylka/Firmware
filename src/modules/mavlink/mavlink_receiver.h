@@ -79,6 +79,7 @@
 #include <uORB/topics/collision_report.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/charging_station_state.h>
+#include <uORB/topics/external_vehicle_position.h>
 
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
@@ -159,6 +160,7 @@ private:
 	void handle_message_named_value_float(mavlink_message_t *msg);
 	void handle_message_debug(mavlink_message_t *msg);
 	void handle_message_debug_vect(mavlink_message_t *msg);
+	void handle_message_global_position_int(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
@@ -240,6 +242,7 @@ private:
 	orb_advert_t _gps_inject_data_pub;
 	orb_advert_t _command_ack_pub;
 	orb_advert_t _charging_station_state_pub;
+	orb_advert_t _external_vehicle_position_pub;
 	int _control_mode_sub;
 	int _actuator_armed_sub;
 	uint64_t _global_ref_timestamp;
