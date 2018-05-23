@@ -148,6 +148,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_charging_station_state_pub(nullptr),
+	_external_vehicle_position_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_actuator_armed_sub(orb_subscribe(ORB_ID(actuator_armed))),
 	_global_ref_timestamp(0),
@@ -347,6 +348,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_DEBUG_VECT:
 		handle_message_debug_vect(msg);
+		break;
+
+	case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:
+		handle_message_global_position_int(msg);
 		break;
 
 	default:
@@ -2468,6 +2473,25 @@ void MavlinkReceiver::handle_message_debug_vect(mavlink_message_t *msg)
 	} else {
 		orb_publish(ORB_ID(debug_vect), _debug_vect_pub, &debug_topic);
 	}
+}
+
+void MavlinkReceiver::handle_message_global_position_int(mavlink_message_t *msg)
+{
+	mavlink_global_position_int_t pos;
+	mavlink_msg_global_position_int_decode(msg, &pos);
+
+	external_vehicle_position_s topic_pos = {
+		.timestamp = hrt_absolute_time(),
+		.id = msg->sysid,
+		.lat = pos.lat * 1e-7,
+		.lon = pos.lon * 1e-7,
+		.alt = pos.alt * 1e-3f,
+		.hdg = pos.hdg
+	};
+
+	int inst = 0;
+	orb_publish_auto(ORB_ID(external_vehicle_position), &_external_vehicle_position_pub, &topic_pos, &inst,
+			 ORB_PRIO_DEFAULT);
 }
 
 /**
