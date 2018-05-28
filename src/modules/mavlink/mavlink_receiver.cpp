@@ -1726,6 +1726,10 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			} else {
 				orb_publish(ORB_ID(charging_station_state), _charging_station_state_pub, &state);
 			}
+
+			char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
+			sprintf(buf, "Got HEARTBEAT from ChS %d, state %d", state.id, state.custom_mode);
+			_mavlink->send_statustext_info(buf);
 		}
 	}
 }
