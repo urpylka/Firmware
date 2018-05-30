@@ -72,6 +72,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/external_vehicle_position.h>
 #include <uORB/uORB.h>
 
 /**
@@ -167,6 +168,7 @@ public:
 	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos); }
 
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
+	int		get_external_vehicle_position_sub() { return _external_vehicle_position_sub; }
 
 	Geofence	&get_geofence() { return _geofence; }
 
@@ -284,6 +286,7 @@ private:
 	int		_traffic_sub{-1};		/**< traffic subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
+	int		_external_vehicle_position_sub{-1};
 
 	orb_advert_t	_geofence_result_pub{nullptr};
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */

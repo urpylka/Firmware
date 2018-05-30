@@ -204,6 +204,7 @@ Navigator::run()
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
+	_external_vehicle_position_sub = orb_subscribe(ORB_ID(external_vehicle_position));
 
 	/* copy all topics first time */
 	vehicle_status_update();
