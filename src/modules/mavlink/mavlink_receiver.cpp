@@ -2364,14 +2364,13 @@ void MavlinkReceiver::handle_message_global_position_int(mavlink_message_t *msg)
 	mavlink_global_position_int_t pos;
 	mavlink_msg_global_position_int_decode(msg, &pos);
 
-	external_vehicle_position_s topic_pos = {
-		.timestamp = hrt_absolute_time(),
-		.id = msg->sysid,
-		.lat = pos.lat * 1e-7,
-		.lon = pos.lon * 1e-7,
-		.alt = pos.alt * 1e-3f,
-		.hdg = pos.hdg
-	};
+	external_vehicle_position_s topic_pos;
+	topic_pos.timestamp = hrt_absolute_time();
+	topic_pos.id = msg->sysid;
+	topic_pos.lat = pos.lat * 1e-7;
+	topic_pos.lon = pos.lon * 1e-7;
+	topic_pos.alt = pos.alt * 1e-3f;
+	topic_pos.hdg = pos.hdg;
 
 	int inst = 0;
 	orb_publish_auto(ORB_ID(external_vehicle_position), &_external_vehicle_position_pub, &topic_pos, &inst, ORB_PRIO_DEFAULT);
