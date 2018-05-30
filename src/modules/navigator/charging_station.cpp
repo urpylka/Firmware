@@ -17,6 +17,7 @@
 #define CUSTOM_MODE_CLOSING 4
 
 #define OPEN_TIMEOUT 20
+#define NO_HEARTBEAT_TIMEOUT 6
 
 ChargingStation::ChargingStation(Navigator *navigator) :
 	MissionBlock(navigator)
@@ -36,6 +37,7 @@ ChargingStation::on_activation()
 
 	_sent = false;
 	_complete = false;
+	_heartbeat_received = false;
 }
 
 void
@@ -81,6 +83,10 @@ ChargingStation::on_active()
 	} else if (hrt_elapsed_time(&_start_time) / 1e6f > OPEN_TIMEOUT) {
 		_navigator->set_mission_failure("Charging station opening timeout");
 
+	} else if ((hrt_elapsed_time(&_start_time) / 1e6f > NO_HEARTBEAT_TIMEOUT) &&
+			    !_heartbeat_received && !in_flight()) {
+		_navigator->set_mission_failure("No heartbeats from the charging station");
+
 	} else if (_action == ACTION_OPEN) {
 		bool updated;
 
@@ -109,6 +115,7 @@ ChargingStation::on_active()
 
 			if (state.id == _id && hrt_elapsed_time(&state.timestamp) < 2000000) {
 				// valid state
+				_heartbeat_received = true;
 				if (state.system_status == charging_station_state_s::SYSTEM_STATUS_CRITICAL ||
 				    state.system_status == charging_station_state_s::SYSTEM_STATUS_EMERGENCY) {
 					_navigator->set_mission_failure("Charging station failure");
@@ -139,4 +146,10 @@ ChargingStation::set_params(int id, int action)
 	PX4_INFO("Set charging station action params: id=%d, action=%d", id, action);
 	_id = id;
 	_action = action;
+}
+
+bool
+ChargingStation::in_flight()
+{
+	return !_navigator->get_land_detected()->landed;
 }
