@@ -1337,6 +1337,14 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			// TODO: abort alt param1
 			mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4));
 			mission_item->land_precision = mavlink_mission_item->param2;
+			mission_item->params[2] = 0;
+			break;
+
+		case MAV_CMD_WAYPOINT_USER_1:
+			mission_item->nav_cmd = NAV_CMD_LAND;
+			mission_item->yaw = _wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
+			mission_item->land_precision = mavlink_mission_item->param2;
+			mission_item->params[2] = mavlink_mission_item->param3;
 			break;
 
 		case MAV_CMD_NAV_TAKEOFF:

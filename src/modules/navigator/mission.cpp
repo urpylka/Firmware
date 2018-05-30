@@ -59,6 +59,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/external_vehicle_position.h>
 
 using matrix::wrap_pi;
 
@@ -274,6 +275,30 @@ Mission::on_active()
 
 		} else {
 			_navigator->get_precland()->on_active();
+		}
+	}
+
+	if ((_mission_item.nav_cmd == NAV_CMD_LAND || _work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND)
+	        && (int)_mission_item.params[2] != 0) {
+		// Land to charging station handling
+		bool external_position_updated;
+		int external_vehicle_position_sub = _navigator->get_external_vehicle_position_sub();
+		orb_check(external_vehicle_position_sub, &external_position_updated);
+		if (external_position_updated) {
+			external_vehicle_position_s charging_station_position;
+			orb_copy(ORB_ID(external_vehicle_position), external_vehicle_position_sub, &charging_station_position);
+
+			if (charging_station_position.id == (int)_mission_item.params[2]) {
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "Land position correction from charging station %d", charging_station_position.id);
+
+				position_setpoint_triplet_s *sp;
+				sp = _navigator->get_position_setpoint_triplet();
+				sp->current.lat = charging_station_position.lat;
+				sp->current.lon = charging_station_position.lon;
+				sp->current.valid = true;
+				copy_positon_if_valid(&_mission_item, &sp->current);
+				_navigator->set_position_setpoint_triplet_updated();
+			}
 		}
 	}
 
