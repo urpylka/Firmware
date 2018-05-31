@@ -104,6 +104,8 @@ set(config_module_list
 	modules/dataman
 	modules/landing_target_estimator
 
+	modules/fake_charging_station
+
 	#
 	# OBC challenge
 	#
