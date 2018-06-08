@@ -1957,17 +1957,6 @@ Commander::run()
 				/* copy avionics voltage */
 				avionics_power_rail_voltage = system_power.voltage5V_v;
 
-				/* if the USB hardware connection went away, reboot */
-				if (status_flags.usb_connected && !system_power.usb_connected) {
-					/*
-					 * apparently the USB cable went away but we are still powered,
-					 * so lets reset to a classic non-usb state.
-					 */
-					mavlink_log_critical(&mavlink_log_pub, "USB disconnected, rebooting.")
-					usleep(400000);
-					px4_shutdown_request(true, false);
-				}
-
 				/* finally judge the USB connected state based on software detection */
 				status_flags.usb_connected = _usb_telemetry_active;
 			}
