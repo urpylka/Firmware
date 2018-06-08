@@ -54,6 +54,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
+#include <drivers/drv_pwm_output.h>
+
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
 	_param_yaw_timeout(this, "MIS_YAW_TMT", false),
@@ -404,7 +406,7 @@ MissionBlock::reset_mission_item_reached()
 	_time_first_inside_orbit = 0;
 	_time_wp_reached = 0;
 }
-
+orb_advert_t		_mavlink_log_mission;	///< mavlink log pub
 void
 MissionBlock::issue_command(const mission_item_s &item)
 {
@@ -426,7 +428,12 @@ MissionBlock::issue_command(const mission_item_s &item)
 
 		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
 		// params[1] new value for selected actuator in ms 900...2000
-		actuators.control[(int)item.params[0]] = 1.0f / 2000 * -item.params[1];
+//		actuators.control[(int)item.params[0]] = 1.0f / 2000 * -item.params[1];
+                actuators.control[(int)item.params[0]] = 
+                        (float)((item.params[1] - (2000 + 1000) / 2)/((2000 - 1000) / 2));
+//                effective_pwm[i] = control_value * (max_pwm[i] - min_pwm[i]) / 2 + (max_pwm[i] + min_pwm[i]) / 2;
+                
+                mavlink_log_emergency(&_mavlink_log_mission, "do_set_servo: pwm %f, orb %f", (int)item.params[1], (double)actuators.control[(int)item.params[0]]*1000);
 
 		if (_actuator_pub != nullptr) {
 			orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);

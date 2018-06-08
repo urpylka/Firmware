@@ -38,6 +38,13 @@
  */
 
 #include <cfloat>
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <poll.h>
+#include <string.h>
+#include <cstring>
 
 #include <board_config.h>
 #include <drivers/device/device.h>
@@ -62,6 +69,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
+#include <systemlib/mavlink_log.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -80,6 +88,8 @@
 
 static constexpr uint8_t CYCLE_COUNT = 10; /* safety switch must be held for 1 second to activate */
 static constexpr uint8_t MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
+
+orb_advert_t		_mavlink_log_pub;	///< mavlink log pub
 
 #if defined(PX4_CPU_UUID_WORD32_FORMAT)
 #  define CPU_UUID_FORMAT PX4_CPU_UUID_WORD32_FORMAT
@@ -118,9 +128,9 @@ enum PortMode {
 	PORT_CAPTURE,
 };
 
-#if !defined(BOARD_HAS_PWM)
-#  error "board_config.h needs to define BOARD_HAS_PWM"
-#endif
+//#if !defined(BOARD_HAS_PWM)
+//#  error "board_config.h needs to define BOARD_HAS_PWM"
+//#endif
 
 class PX4FMU : public device::CDev, public ModuleBase<PX4FMU>
 {
@@ -888,11 +898,19 @@ PX4FMU::subscribe()
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
 	uint32_t unsub_groups = _groups_subscribed & ~_groups_required;
 	_poll_fds_num = 0;
+        
+        mavlink_log_emergency(&_mavlink_log_pub, "Subscribing");
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
 			DEVICE_DEBUG("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
+                        mavlink_log_emergency(&_mavlink_log_pub, "Subscribe control_topic %f", (double)i);
+                        
+//                        file fd;// = fopen("/dev/pwm_output1", "rw");
+//                        unsigned long xz = 0;
+//                        pwm_ioctl(&fd, MIXERIOCADDSIMPLE, xz);
+                        
 		}
 
 		if (unsub_groups & (1 << i)) {
@@ -1172,9 +1190,19 @@ PX4FMU::run()
 	cycle();
 }
 
+int i_pwm = 900;
+int m_pwm = 1;
+bool printed = false;
+mixer_simple_s* mixsettings;
+
 void
 PX4FMU::cycle()
 {
+    if (!printed)
+    {
+            mavlink_log_emergency(&_mavlink_log_pub, "Start fmu::cycle");
+            printed = true;
+    }
 	while (true) {
 
 		if (_groups_subscribed != _groups_required) {
@@ -1228,12 +1256,17 @@ PX4FMU::cycle()
 		/* wait for an update */
 		unsigned n_updates = 0;
 		int ret = px4_poll(_poll_fds, _poll_fds_num, poll_timeout);
+                
+                ret = 1;
+//                bool changed = false;
 
 		/* this would be bad... */
 		if (ret < 0) {
 			DEVICE_LOG("poll error %d", errno);
+                        mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: poll error %d", errno);
 
 		} else if (ret == 0) {
+                        mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: no PWM: failsafe");
 			/* timeout: no control data, switch to failsafe values */
 			//			PX4_WARN("no PWM: failsafe");
 
@@ -1244,15 +1277,18 @@ PX4FMU::cycle()
 				/* get controls for required topics */
 				unsigned poll_id = 0;
 
+//                                mavlink_log_emergency(&_mavlink_log_pub, "into cycle px4fmu");
 				for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 					if (_control_subs[i] > 0) {
-
-						if (_poll_fds[poll_id].revents & POLLIN) {
+                                                
+//                                                orb_check(_control_subs[2], &changed);
+                                                
+						if ((_poll_fds[poll_id].revents & POLLIN)) {
 							if (i == 0) {
 								n_updates++;
 							}
-
-							orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
+                                                        mavlink_log_emergency(&_mavlink_log_pub, "fmu: group %f changed", i);
+                                                        orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 						}
 
 						poll_id++;
@@ -1303,15 +1339,38 @@ PX4FMU::cycle()
 				/* do mixing */
 				float outputs[_max_actuators];
 				const unsigned mixed_num_outputs = _mixers->mix(outputs, _num_outputs);
+                                
+                                if (i_pwm < 900)
+                                {
+                                    //                                    outputs[0] = 1024;
+                                    switch (_pwm_limit.state) {
+                                        case PWM_LIMIT_STATE_INIT:
+                                            mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: mixer output[0]: %f, lim_state: INIT", (double)outputs[0]*1000);
+                                            break;
+                                        case PWM_LIMIT_STATE_ON:
+                                            mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: mixer output[0]: %f, lim_state: ON", (double)outputs[0]*1000);
+                                            break;
+                                        case PWM_LIMIT_STATE_OFF:
+                                            mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: mixer output[0]: %f, lim_state: OFF", (double)outputs[0]*1000);
+                                            break;
+                                        case PWM_LIMIT_STATE_RAMP:
+                                            mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: mixer output[0]: %f, lim_state: RAMP", (double)outputs[0]*1000);
+                                            break; 
+                                        
+                                    }
+                                }
 
 				/* the PWM limit call takes care of out of band errors, NaN and constrains */
 				uint16_t pwm_limited[MAX_ACTUATORS];
 
+//                                _pwm_limit.state = PWM_LIMIT_STATE_ON;
+                                
 				pwm_limit_calc(_throttle_armed, arm_nothrottle(), mixed_num_outputs, _reverse_pwm_mask,
 					       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
 
 				/* overwrite outputs in case of force_failsafe with _failsafe_pwm PWM values */
 				if (_armed.force_failsafe) {
+                                        mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: armed.force_failsafe");
 					for (size_t i = 0; i < mixed_num_outputs; i++) {
 						pwm_limited[i] = _failsafe_pwm[i];
 					}
@@ -1319,15 +1378,33 @@ PX4FMU::cycle()
 
 				/* overwrite outputs in case of lockdown with disarmed PWM values */
 				if (_armed.lockdown || _armed.manual_lockdown) {
+                                        mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: lockdown");
 					for (size_t i = 0; i < mixed_num_outputs; i++) {
 						pwm_limited[i] = _disarmed_pwm[i];
 					}
 				}
 
+                                if (i_pwm < 900)
+                                {
+                                    m_pwm = 1;
+//                                    mavlink_log_emergency(&_mavlink_log_pub, "pwm_lim[0]: %d", pwm_limited[0]);
+                                }
+                                if (i_pwm > 1500)
+                                {
+                                    m_pwm = -1;
+                                    mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: pwm_lim[0]: %d", pwm_limited[0]);
+                                }
+                                
+                                i_pwm = i_pwm + m_pwm;
+                                
+//                                char str[500]={0};
+//                                sprintf(str, "mno: %f",(double)mixed_num_outputs);
+                                
 				/* output to the servos */
 				if (_pwm_initialized) {
 					for (size_t i = 0; i < mixed_num_outputs; i++) {
-						up_pwm_servo_set(i, pwm_limited[i]);
+//						up_pwm_servo_set(0, i_pwm);//pwm_limited[i]);
+                                            up_pwm_servo_set(i, pwm_limited[i]);
 					}
 				}
 
@@ -1789,6 +1866,8 @@ void PX4FMU::update_params()
 	}
 }
 
+//float xz = 0;
+//float mult = 0.001;
 
 int
 PX4FMU::control_callback(uintptr_t handle,
@@ -1799,8 +1878,8 @@ PX4FMU::control_callback(uintptr_t handle,
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
 	input = controls[control_group].control[control_index];
-
-	/* limit control input */
+        
+        /* limit control input */
 	if (input > 1.0f) {
 		input = 1.0f;
 
@@ -1829,6 +1908,18 @@ PX4FMU::control_callback(uintptr_t handle,
 			input = NAN;
 		}
 	}
+        
+//        if (control_group == 2){
+//            if (xz > 1.0f)
+//                mult = -0.001;
+//            if (xz < -1.0f)
+//                mult = 0.001;
+//            xz = xz + mult;
+//            input = xz;
+//        }
+        
+//        if (control_group == 2 && control_index == 0)
+//            mavlink_log_emergency(&_mavlink_log_pub, "control_callback group 2 index %f value %f", (double)control_index, (double)input*1000);
 
 	return 0;
 }
@@ -2511,10 +2602,12 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			_mixers = nullptr;
 			_groups_required = 0;
 		}
+                mavlink_log_emergency(&_mavlink_log_pub, "MIXERIOCRESET");
 
 		break;
 
 	case MIXERIOCADDSIMPLE: {
+                        mavlink_log_emergency(&_mavlink_log_pub, "MIXERIOCADDSIMPLE");
 			mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
 
 			SimpleMixer *mixer = new SimpleMixer(control_callback, (uintptr_t)_controls, mixinfo);
@@ -2537,6 +2630,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 	case MIXERIOCLOADBUF: {
+                        mavlink_log_emergency(&_mavlink_log_pub, "MIXERIOCLOADBUF");
 			const char *buf = (const char *)arg;
 			unsigned buflen = strnlen(buf, 1024);
 

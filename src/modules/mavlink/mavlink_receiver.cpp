@@ -84,11 +84,25 @@
 #include <geo/geo.h>
 
 #include <uORB/topics/vehicle_command_ack.h>
+#include <navigator/mission_block.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 #include "mavlink_command_sender.h"
+
+#include <drivers/drv_pwm_output.h>
+#include <platforms/px4_defines.h>
+
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
+#include <systemlib/param/param.h>
+#include <arch/board/board.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
+#include <platforms/px4_defines.h>
 
 static const float mg2ms2 = CONSTANTS_ONE_G / 1000.0f;
 
@@ -334,7 +348,50 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_DEBUG_VECT:
 		handle_message_debug_vect(msg);
 		break;
+                
+        case MAVLINK_MSG_ID_STATUSTEXT:
+        {
+                // XXX: we should issue a vehicle command and handle this somewhere else
+		actuator_controls_s actuators = {};
+		actuators.timestamp = hrt_absolute_time();
 
+		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
+		// params[1] new value for selected actuator in ms 900...2000
+                int pwm_test = 915;
+		actuators.control[0] = 1.0f / 2000 * -pwm_test;
+                
+                orb_advert_t    _actuator_pub{nullptr};
+//                for (unsigned i = 0; i < 200000; i++) {
+                
+                if (_actuator_pub != nullptr) {
+                        orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);
+
+                } else {
+                        _actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
+                }
+                
+//                }
+//                int ret;
+//                
+//                int fd = px4_open("/dev/pwm_output1", 0);
+//                
+//                if (fd<0)
+//                    _mavlink->send_statustext_info("ITS DEAD JIM");
+//
+//                for (unsigned i = 0; i < 200000; i++) {
+//                    ret = px4_ioctl(fd, PWM_SERVO_SET(0), 500);
+////                    usleep(1);
+//                }
+//
+//		if (ret != OK) {
+//			_mavlink->send_statustext_info("Error sending pwm");
+//		}
+//                else{
+//                        _mavlink->send_statustext_info("PWM sent OK");
+//                }
+                break;
+        }
+                
 	default:
 		break;
 	}
@@ -1637,7 +1694,7 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
 		/* ignore own heartbeats, accept only heartbeats from GCS */
-		if (msg->sysid != mavlink_system.sysid && hb.type == MAV_TYPE_GCS) {
+		if (msg->sysid != mavlink_system.sysid && (hb.type == MAV_TYPE_GCS || hb.type == MAV_TYPE_ONBOARD_CONTROLLER)) {
 
 			struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
 
