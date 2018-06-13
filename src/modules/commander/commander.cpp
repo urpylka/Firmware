@@ -565,7 +565,7 @@ bool shutdown_allowed()
 	return TRANSITION_DENIED != arming_state_transition(&status,
 	                                                    battery,
 	                                                    safety,
-	                                                    vehicle_status_s::ARMING_STATE_REBOOT,
+	                                                    vehicle_status_s::ARMING_STATE_SHUTDOWN,
 	                                                    &armed,
 	                                                    false /* fRunPreArmChecks */,
 	                                                    &mavlink_log_pub,
