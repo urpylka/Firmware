@@ -278,8 +278,9 @@ Mission::on_active()
 		}
 	}
 
-	if ((_mission_item.nav_cmd == NAV_CMD_LAND || _work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND)
-	        && (int)_mission_item.params[2] != 0) {
+	if ((_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND ||
+	    (_mission_item.nav_cmd == NAV_CMD_LAND && _mission_item.land_precision == 0)) &&
+	    (int)_mission_item.params[2] != 0) {
 		// Land to charging station handling
 		bool external_position_updated;
 		int external_vehicle_position_sub = _navigator->get_external_vehicle_position_sub();
