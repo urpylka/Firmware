@@ -1613,6 +1613,11 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			// TODO: param1 abort alt
 			mavlink_mission_item->param2 = mission_item->land_precision;
 			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
+			if ((int)mission_item->params[2] != 0) {
+				// Land to charging station waypoint
+				mavlink_mission_item->param3 = mission_item->params[2];
+				mavlink_mission_item->command = MAV_CMD_WAYPOINT_USER_1;
+			}
 			break;
 
 		case NAV_CMD_TAKEOFF:
