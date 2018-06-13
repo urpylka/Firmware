@@ -19,7 +19,7 @@ topics = []
 message_elements = []
 
 # large and not worth printing
-raw_messages = [x for x in raw_messages if not any(exception in x for exception in ['qshell_req', 'ulog_stream', 'gps_inject_data', 'gps_dump'])]
+raw_messages = [x for x in raw_messages if not any(exception in x for exception in ['qshell_req', 'ulog_stream', 'optical_flow', 'distance_sensor', 'gps_dump'])]
 
 for index,m in enumerate(raw_messages):
 	topic_list = []
