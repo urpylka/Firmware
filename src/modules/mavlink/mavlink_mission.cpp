@@ -1611,6 +1611,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 		case NAV_CMD_LAND:
 			// TODO: param1 abort alt
+			mavlink_mission_item->param2 = mission_item->land_precision;
 			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
 			break;
 
