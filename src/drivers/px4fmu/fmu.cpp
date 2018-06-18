@@ -1287,7 +1287,8 @@ PX4FMU::cycle()
 							if (i == 0) {
 								n_updates++;
 							}
-                                                        mavlink_log_emergency(&_mavlink_log_pub, "fmu: group %f changed", i);
+                                                        if (i > 0)
+//                                                            mavlink_log_emergency(&_mavlink_log_pub, "fmu: group %f changed", double(i));
                                                         orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 						}
 
