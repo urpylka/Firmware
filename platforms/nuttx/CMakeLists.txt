@@ -180,6 +180,14 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 			COMMENT "uploading px4"
 			USES_TERMINAL
 			)
+		add_custom_target(force-upload
+			COMMAND ${PYTHON_EXECUTABLE}
+				${PX4_SOURCE_DIR}/Tools/px_uploader.py --force --port ${serial_ports} ${fw_file}
+			DEPENDS ${fw_file}
+			COMMENT "uploading px4 with --force"
+			VERBATIM
+			USES_TERMINAL
+			)
 	endif()
 endif()
 
