@@ -40,19 +40,11 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
-#include <px4_module.h>
-
 #include "pwm_limit.h"
 #include <math.h>
 #include <stdbool.h>
 #include <drivers/drv_hrt.h>
 #include <stdio.h>
-#include <systemlib/mavlink_log.h>
-
-orb_advert_t		_mav_pub;	///< mavlink log pub
 
 #define PROGRESS_INT_SCALING	10000
 
@@ -62,33 +54,15 @@ void pwm_limit_init(pwm_limit_t *limit)
 	limit->time_armed = 0;
 }
 
-bool published = false;
-
-int lim_msg_delayer = 0;
-int lim_msg_delayer_iterator = 1;
-
 void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_channels, const uint16_t reverse_mask,
 		    const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm,
 		    const float *output, uint16_t *effective_pwm, pwm_limit_t *limit)
 {
-        if (!published)
-        {
-            mavlink_log_emergency(&_mav_pub, "hello from pwm_limit_calc");
-            published = true;
-        }
-        
-        lim_msg_delayer = lim_msg_delayer + lim_msg_delayer_iterator;
-        if (lim_msg_delayer > 1000)
-            lim_msg_delayer_iterator = -1;
-        if (lim_msg_delayer < 0)
-            lim_msg_delayer_iterator = 1;
-        
+
 	/* first evaluate state changes */
 	switch (limit->state) {
 	case PWM_LIMIT_STATE_INIT:
-        {
-//                if (lim_msg_delayer > 1000)
-//                    mavlink_log_emergency(&_mav_pub, "pwm_limit PWM_LIMIT_STATE_INIT");
+
 		if (armed) {
 
 			/* set arming time for the first call */
@@ -100,47 +74,37 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 				limit->state = PWM_LIMIT_STATE_OFF;
 			}
 		}
-        }
+
 		break;
 
 	case PWM_LIMIT_STATE_OFF:
-        {
-//                if (lim_msg_delayer > 1000)
-//                    mavlink_log_emergency(&_mav_pub, "pwm_limit PWM_LIMIT_STATE_OFF");
 		if (armed) {
 			limit->state = PWM_LIMIT_STATE_RAMP;
 
 			/* reset arming time, used for ramp timing */
 			limit->time_armed = hrt_absolute_time();
 		}
-        }
+
 		break;
 
 	case PWM_LIMIT_STATE_RAMP:
-        {
-//                if (lim_msg_delayer > 1000)
-//                    mavlink_log_emergency(&_mav_pub, "pwm_limit PWM_LIMIT_STATE_RAMP");
 		if (!armed) {
 			limit->state = PWM_LIMIT_STATE_OFF;
 
 		} else if (hrt_elapsed_time(&limit->time_armed) >= RAMP_TIME_US) {
 			limit->state = PWM_LIMIT_STATE_ON;
 		}
-        }
+
 		break;
 
-	case PWM_LIMIT_STATE_ON:{
-//                if (lim_msg_delayer > 1000)
-//                    mavlink_log_emergency(&_mav_pub, "pwm_limit PWM_LIMIT_STATE_ON");
-//		if (!armed) {
-//			limit->state = PWM_LIMIT_STATE_OFF;
-//		}
-        }
+	case PWM_LIMIT_STATE_ON:
+		if (!armed) {
+			limit->state = PWM_LIMIT_STATE_OFF;
+		}
+
 		break;
 
 	default:
-//                if (lim_msg_delayer > 1000)
-                    mavlink_log_emergency(&_mav_pub, "pwm_limit DEFAULT");
 		break;
 	}
 
@@ -163,8 +127,6 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 	switch (local_limit_state) {
 	case PWM_LIMIT_STATE_OFF:
 	case PWM_LIMIT_STATE_INIT:
-//                if (lim_msg_delayer > 1000)
-//                    mavlink_log_emergency(&_mav_pub, "pwm_limit PWM_LIMIT_STATE_INIT-OFF");
 		for (unsigned i = 0; i < num_channels; i++) {
 			effective_pwm[i] = disarmed_pwm[i];
 		}
