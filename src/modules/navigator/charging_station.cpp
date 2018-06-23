@@ -10,12 +10,6 @@
 #define ACTION_OPEN 0
 #define ACTION_CLOSE 1
 
-#define CUSTOM_MODE_UNKNOWN 0
-#define CUSTOM_MODE_OPEN 1
-#define CUSTOM_MODE_OPENING 2
-#define CUSTOM_MODE_CLOSED 3
-#define CUSTOM_MODE_CLOSING 4
-
 #define OPEN_TIMEOUT 20
 #define NO_HEARTBEAT_TIMEOUT 6
 
@@ -66,7 +60,8 @@ ChargingStation::on_active()
 
 			cmd.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
 			cmd.param1 = charging_station_state_s::BASE_MODE_FLAG_CUSTOM_MODE_ENABLED; // mode
-			cmd.param2 = _action == ACTION_OPEN ? CUSTOM_MODE_OPEN : CUSTOM_MODE_CLOSED; // custom mode
+			cmd.param2 = _action == ACTION_OPEN ?
+				charging_station_state_s::CUSTOM_MODE_OPEN : charging_station_state_s::CUSTOM_MODE_CLOSED; // custom mode
 			cmd.param3 = 0; // sub mode
 			cmd.target_system = _id;
 			cmd.target_component = 1; // MAV_COMP_ID_AUTOPILOT1
@@ -115,7 +110,7 @@ ChargingStation::on_active()
 					state.system_status == charging_station_state_s::SYSTEM_STATUS_EMERGENCY) {
 					_navigator->set_mission_failure("Charging station failure");
 
-				} else if (state.custom_mode == CUSTOM_MODE_OPEN) {
+				} else if (state.custom_mode == charging_station_state_s::CUSTOM_MODE_OPEN) {
 					PX4_INFO("Charging station is open");
 					_complete = true;
 				}
