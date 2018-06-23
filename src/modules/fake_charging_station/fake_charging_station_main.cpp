@@ -29,53 +29,53 @@ charging_station_state_s state;
 extern "C" __EXPORT int fake_charging_station_main(int argc, char *argv[]);
 
 int fake_charging_station_thread_main(int argc, char *argv[]) {
-    PX4_INFO("Starting fake charging station publisher");
+	PX4_INFO("Starting fake charging station publisher");
 
-    state = {
-        .id = CHARGING_STATION_ID,
-        .base_mode = charging_station_state_s::BASE_MODE_FLAG_CUSTOM_MODE_ENABLED,
-        .system_status = 0,
-        .custom_mode = charging_station_state_s::CUSTOM_MODE_CLOSED
-    };
+	state = {
+		.id = CHARGING_STATION_ID,
+		.base_mode = charging_station_state_s::BASE_MODE_FLAG_CUSTOM_MODE_ENABLED,
+		.system_status = 0,
+		.custom_mode = charging_station_state_s::CUSTOM_MODE_CLOSED
+	};
 
-    external_vehicle_position_s pos = {
-        .id = CHARGING_STATION_ID,
-        .alt = 0,
-        .lat = CHARGING_STATION_LAT,
-        .lon = CHARGING_STATION_LON,
-        .hdg = CHARGING_STATION_HDG
-    };
+	external_vehicle_position_s pos = {
+		.id = CHARGING_STATION_ID,
+		.alt = 0,
+		.lat = CHARGING_STATION_LAT,
+		.lon = CHARGING_STATION_LON,
+		.hdg = CHARGING_STATION_HDG
+	};
 
-    orb_advert_t state_pub = orb_advertise(ORB_ID(charging_station_state), &state);
-    orb_advert_t pos_pub = orb_advertise(ORB_ID(external_vehicle_position), &pos);
+	orb_advert_t state_pub = orb_advertise(ORB_ID(charging_station_state), &state);
+	orb_advert_t pos_pub = orb_advertise(ORB_ID(external_vehicle_position), &pos);
 
-    while(true) {
-        usleep(1000000);
-        state.timestamp = pos.timestamp = hrt_absolute_time();
-        orb_publish(ORB_ID(charging_station_state), state_pub, &state);
-        orb_publish(ORB_ID(external_vehicle_position), pos_pub, &pos);
-    }
+	while(true) {
+		usleep(1000000);
+		state.timestamp = pos.timestamp = hrt_absolute_time();
+		orb_publish(ORB_ID(charging_station_state), state_pub, &state);
+		orb_publish(ORB_ID(external_vehicle_position), pos_pub, &pos);
+	}
 }
 
 int fake_charging_station_main(int argc, char *argv[]) {
-    if (argc < 2) {
-        PX4_INFO("usage: fake_charging_station {start|open|close}");
-        return 1;
+	if (argc < 2) {
+		PX4_INFO("usage: fake_charging_station {start|open|close}");
+		return 1;
 
-    } else if (strcmp(argv[1], "start") == 0) {
-        __attribute__((unused)) px4_task_t deamon_task = px4_task_spawn_cmd("fake_charging_station",
-                        SCHED_DEFAULT,
-                        1,
-                        200,
-                        fake_charging_station_thread_main,
-                        nullptr);
+	} else if (strcmp(argv[1], "start") == 0) {
+		__attribute__((unused)) px4_task_t deamon_task = px4_task_spawn_cmd("fake_charging_station",
+						SCHED_DEFAULT,
+						1,
+						200,
+						fake_charging_station_thread_main,
+						nullptr);
 
-    } else if (strcmp(argv[1], "open") == 0) {
-        state.custom_mode = charging_station_state_s::CUSTOM_MODE_OPEN;
+	} else if (strcmp(argv[1], "open") == 0) {
+		state.custom_mode = charging_station_state_s::CUSTOM_MODE_OPEN;
 
-    } else if (strcmp(argv[1], "close") == 0) {
-        state.custom_mode = charging_station_state_s::CUSTOM_MODE_CLOSED;
-    }
+	} else if (strcmp(argv[1], "close") == 0) {
+		state.custom_mode = charging_station_state_s::CUSTOM_MODE_CLOSED;
+	}
 
-    return OK;
+	return OK;
 }
