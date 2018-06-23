@@ -23,18 +23,19 @@
 #define CHARGING_STATION_LAT 47.3976174
 #define CHARGING_STATION_LON 8.5455089
 #define CHARGING_STATION_HDG 0
-#define CHARGING_STATION_CUSTOM_MODE 2
+
+charging_station_state_s state;
 
 extern "C" __EXPORT int fake_charging_station_main(int argc, char *argv[]);
 
 int fake_charging_station_thread_main(int argc, char *argv[]) {
     PX4_INFO("Starting fake charging station publisher");
 
-    charging_station_state_s state = {
+    state = {
         .id = CHARGING_STATION_ID,
         .base_mode = charging_station_state_s::BASE_MODE_FLAG_CUSTOM_MODE_ENABLED,
         .system_status = 0,
-        .custom_mode = CHARGING_STATION_CUSTOM_MODE
+        .custom_mode = charging_station_state_s::CUSTOM_MODE_CLOSED
     };
 
     external_vehicle_position_s pos = {
@@ -57,12 +58,24 @@ int fake_charging_station_thread_main(int argc, char *argv[]) {
 }
 
 int fake_charging_station_main(int argc, char *argv[]) {
-    __attribute__((unused)) px4_task_t deamon_task = px4_task_spawn_cmd("fake_charging_station",
-                    SCHED_DEFAULT,
-                    1,
-                    200,
-                    fake_charging_station_thread_main,
-                    nullptr);
+    if (argc < 2) {
+        PX4_INFO("usage: fake_charging_station {start|open|close}");
+        return 1;
+
+    } else if (strcmp(argv[1], "start") == 0) {
+        __attribute__((unused)) px4_task_t deamon_task = px4_task_spawn_cmd("fake_charging_station",
+                        SCHED_DEFAULT,
+                        1,
+                        200,
+                        fake_charging_station_thread_main,
+                        nullptr);
+
+    } else if (strcmp(argv[1], "open") == 0) {
+        state.custom_mode = charging_station_state_s::CUSTOM_MODE_OPEN;
+
+    } else if (strcmp(argv[1], "close") == 0) {
+        state.custom_mode = charging_station_state_s::CUSTOM_MODE_CLOSED;
+    }
 
     return OK;
 }
