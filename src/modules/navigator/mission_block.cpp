@@ -55,6 +55,7 @@
 #include <uORB/topics/vtol_vehicle_status.h>
 
 #include <drivers/drv_pwm_output.h>
+//#include <drivers/px4fmu/fmu.cpp>
 
 MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	NavigatorMode(navigator, name),
@@ -63,6 +64,8 @@ MissionBlock::MissionBlock(Navigator *navigator, const char *name) :
 	_param_back_trans_dec_mss(this, "VT_B_DEC_MSS", false),
 	_param_reverse_delay(this, "VT_B_REV_DEL", false)
 {
+    // Subscribing to take actual aux output values for DO_SET_SERVO command
+    _t_actuator_controls_2 = orb_subscribe(ORB_ID(actuator_controls_2));
 }
 
 bool
@@ -421,19 +424,44 @@ MissionBlock::issue_command(const mission_item_s &item)
 
 	if (item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
 		PX4_INFO("DO_SET_SERVO command");
+                
+//                int ret;    
+//                file fd;
+//                
+//                struct pwm_output_values min_pwm;
+//		struct pwm_output_values max_pwm;
+//                
+//                ret = PX4FMU::pwm_ioctl(&fd, PWM_SERVO_GET_MIN_PWM, (unsigned long)&min_pwm);
+//
+//		if (ret != OK) {
+//			PX4_ERR("PWM_SERVO_GET_MIN_PWM");
+//			return 1;
+//		}
+//
+//		ret = PX4FMU::pwm_ioctl(&fd, PWM_SERVO_GET_MAX_PWM, (unsigned long)&max_pwm);
+//
+//		if (ret != OK) {
+//			PX4_ERR("PWM_SERVO_GET_MAX_PWM");
+//			return 1;
+//		}
 
 		// XXX: we should issue a vehicle command and handle this somewhere else
 		actuator_controls_s actuators = {};
 		actuators.timestamp = hrt_absolute_time();
+                
+                // Copying actual AUX values to change only one output
+                // and leave others as they are
+                orb_copy(ORB_ID(actuator_controls_2), _t_actuator_controls_2, 
+                        &actuators);
 
 		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
 		// params[1] new value for selected actuator in ms 900...2000
 //		actuators.control[(int)item.params[0]] = 1.0f / 2000 * -item.params[1];
                 actuators.control[(int)item.params[0]] = 
-                        (float)((item.params[1] - (2000 + 1000) / 2)/((2000 - 1000) / 2));
+                        (float)(((float)item.params[1] - (2000 + 1000) / 2)/((2000 - 1000) / 2));
 //                effective_pwm[i] = control_value * (max_pwm[i] - min_pwm[i]) / 2 + (max_pwm[i] + min_pwm[i]) / 2;
                 
-                mavlink_log_emergency(&_mavlink_log_mission, "do_set_servo: pwm %f, orb %f", (int)item.params[1], (double)actuators.control[(int)item.params[0]]*1000);
+                mavlink_log_emergency(&_mavlink_log_mission, "do_set_servo: pwm %f, orb %f", (double)item.params[1], (double)actuators.control[(int)item.params[0]]*1000);
 
 		if (_actuator_pub != nullptr) {
 			orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);

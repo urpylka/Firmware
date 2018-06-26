@@ -137,6 +137,8 @@ protected:
 	// VTOL parameters
 	control::BlockParamFloat _param_back_trans_dec_mss;
 	control::BlockParamFloat _param_reverse_delay;
+        
+        int _t_actuator_controls_2;
 };
 
 #endif

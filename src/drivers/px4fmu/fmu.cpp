@@ -1194,6 +1194,20 @@ int i_pwm = 900;
 int m_pwm = 1;
 bool printed = false;
 mixer_simple_s* mixsettings;
+bool changed = false;
+float prev_output = -2;
+
+float prev_posted_actuator_controls[6];
+float actuator_changed_epsilon = 0.005;
+
+float float_abs(float val);
+
+float float_abs(float val)
+{
+    if (val < 0)
+        val = val * -1;
+    return val;
+}
 
 void
 PX4FMU::cycle()
@@ -1280,15 +1294,11 @@ PX4FMU::cycle()
 //                                mavlink_log_emergency(&_mavlink_log_pub, "into cycle px4fmu");
 				for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 					if (_control_subs[i] > 0) {
-                                                
-//                                                orb_check(_control_subs[2], &changed);
-                                                
 						if ((_poll_fds[poll_id].revents & POLLIN)) {
 							if (i == 0) {
 								n_updates++;
 							}
-                                                        if (i > 0)
-//                                                            mavlink_log_emergency(&_mavlink_log_pub, "fmu: group %f changed", double(i));
+//                                                        mavlink_log_emergency(&_mavlink_log_pub, "fmu: group %f changed", double(i));
                                                         orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 						}
 
@@ -1341,25 +1351,24 @@ PX4FMU::cycle()
 				float outputs[_max_actuators];
 				const unsigned mixed_num_outputs = _mixers->mix(outputs, _num_outputs);
                                 
-                                if (i_pwm < 900)
-                                {
-                                    //                                    outputs[0] = 1024;
-                                    switch (_pwm_limit.state) {
-                                        case PWM_LIMIT_STATE_INIT:
-                                            mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: mixer output[0]: %f, lim_state: INIT", (double)outputs[0]*1000);
-                                            break;
-                                        case PWM_LIMIT_STATE_ON:
-                                            mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: mixer output[0]: %f, lim_state: ON", (double)outputs[0]*1000);
-                                            break;
-                                        case PWM_LIMIT_STATE_OFF:
-                                            mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: mixer output[0]: %f, lim_state: OFF", (double)outputs[0]*1000);
-                                            break;
-                                        case PWM_LIMIT_STATE_RAMP:
-                                            mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: mixer output[0]: %f, lim_state: RAMP", (double)outputs[0]*1000);
-                                            break; 
-                                        
-                                    }
+                                bool publish_allowed = false;
+                                for (unsigned act_i = 0; act_i < 4; act_i++)
+                                    if (float_abs(outputs[act_i] - prev_posted_actuator_controls[act_i]) 
+                                            > actuator_changed_epsilon)
+                                        publish_allowed = true;
+                                
+                                
+                                if (publish_allowed){
+                                    mavlink_log_emergency(&_mavlink_log_pub, "mixer outputs 1: %f, 2: %f, 3: %f, 4: %f", 
+                                            (double)outputs[0]*1000,
+                                            (double)outputs[1]*1000,
+                                            (double)outputs[2]*1000,
+                                            (double)outputs[3]*1000
+                                            );
+                                    for (unsigned act_i = 0; act_i < 4; act_i++)
+                                        prev_posted_actuator_controls[act_i] = outputs[act_i];
                                 }
+
 
 				/* the PWM limit call takes care of out of band errors, NaN and constrains */
 				uint16_t pwm_limited[MAX_ACTUATORS];
@@ -1368,6 +1377,17 @@ PX4FMU::cycle()
                                 
 				pwm_limit_calc(_throttle_armed, arm_nothrottle(), mixed_num_outputs, _reverse_pwm_mask,
 					       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
+                                
+//                                if (publish_allowed){
+//                                    mavlink_log_emergency(&_mavlink_log_pub, "pwm outputs 1: %f, 2: %f, 3: %f, 4: %f, 5: %f, 6: %f", 
+//                                            (double)pwm_limited[0],
+//                                            (double)pwm_limited[1],
+//                                            (double)pwm_limited[2],
+//                                            (double)pwm_limited[3],
+//                                            (double)pwm_limited[4],
+//                                            (double)pwm_limited[5]
+//                                            );
+//                                }
 
 				/* overwrite outputs in case of force_failsafe with _failsafe_pwm PWM values */
 				if (_armed.force_failsafe) {
@@ -1385,18 +1405,18 @@ PX4FMU::cycle()
 					}
 				}
 
-                                if (i_pwm < 900)
-                                {
-                                    m_pwm = 1;
-//                                    mavlink_log_emergency(&_mavlink_log_pub, "pwm_lim[0]: %d", pwm_limited[0]);
-                                }
-                                if (i_pwm > 1500)
-                                {
-                                    m_pwm = -1;
-                                    mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: pwm_lim[0]: %d", pwm_limited[0]);
-                                }
-                                
-                                i_pwm = i_pwm + m_pwm;
+//                                if (i_pwm < 900)
+//                                {
+//                                    m_pwm = 1;
+////                                    mavlink_log_emergency(&_mavlink_log_pub, "pwm_lim[0]: %d", pwm_limited[0]);
+//                                }
+//                                if (i_pwm > 1500)
+//                                {
+//                                    m_pwm = -1;
+//                                    mavlink_log_emergency(&_mavlink_log_pub, "fmu.cycle: pwm_lim[0]: %d", pwm_limited[0]);
+//                                }
+//                                
+//                                i_pwm = i_pwm + m_pwm;
                                 
 //                                char str[500]={0};
 //                                sprintf(str, "mno: %f",(double)mixed_num_outputs);
