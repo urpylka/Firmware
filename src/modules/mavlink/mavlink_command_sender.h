@@ -114,7 +114,7 @@ private:
 	TimestampedList<command_item_t> _commands;
 
 	bool _debug_enabled = false;
-	static const uint8_t RETRIES = 3;
+	static const uint8_t RETRIES = 5;
 	static const uint64_t TIMEOUT_US = 500000;
 
 	/* do not allow copying or assigning this class */
