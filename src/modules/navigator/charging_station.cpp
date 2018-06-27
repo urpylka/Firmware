@@ -106,8 +106,8 @@ ChargingStation::on_active()
 			if (state.id == _id && hrt_elapsed_time(&state.timestamp) < 2000000) {
 				// valid state
 				_heartbeat_received = true;
-				if (state.system_status == charging_station_state_s::SYSTEM_STATUS_CRITICAL ||
-					state.system_status == charging_station_state_s::SYSTEM_STATUS_EMERGENCY) {
+				if (!in_flight() && (state.system_status == charging_station_state_s::SYSTEM_STATUS_CRITICAL ||
+					state.system_status == charging_station_state_s::SYSTEM_STATUS_EMERGENCY)) {
 					_navigator->set_mission_failure("Charging station failure");
 
 				} else if (state.custom_mode == charging_station_state_s::CUSTOM_MODE_OPEN) {
