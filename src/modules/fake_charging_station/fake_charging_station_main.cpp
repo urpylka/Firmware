@@ -59,7 +59,7 @@ int fake_charging_station_thread_main(int argc, char *argv[]) {
 
 int fake_charging_station_main(int argc, char *argv[]) {
 	if (argc < 2) {
-		PX4_INFO("usage: fake_charging_station {start|open|close}");
+		PX4_INFO("usage: fake_charging_station {start|open|close|critical}");
 		return 1;
 
 	} else if (strcmp(argv[1], "start") == 0) {
@@ -75,6 +75,9 @@ int fake_charging_station_main(int argc, char *argv[]) {
 
 	} else if (strcmp(argv[1], "close") == 0) {
 		state.custom_mode = charging_station_state_s::CUSTOM_MODE_CLOSED;
+
+	} else if (strcmp(argv[1], "critical") == 0) {
+		state.system_status = charging_station_state_s::SYSTEM_STATUS_CRITICAL;
 	}
 
 	return OK;
