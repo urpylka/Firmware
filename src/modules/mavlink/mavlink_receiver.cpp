@@ -2370,7 +2370,11 @@ void MavlinkReceiver::handle_message_global_position_int(mavlink_message_t *msg)
 	topic_pos.lat = pos.lat * 1e-7;
 	topic_pos.lon = pos.lon * 1e-7;
 	topic_pos.alt = pos.alt * 1e-3f;
-	topic_pos.hdg = pos.hdg;
+	topic_pos.yaw_valid = pos.hdg == UINT16_MAX;
+
+	if (topic_pos.yaw_valid) {
+		topic_pos.yaw = _wrap_pi(pos.hdg * 1e2f * M_DEG_TO_RAD_F);
+	}
 
 	int inst = 0;
 	orb_publish_auto(ORB_ID(external_vehicle_position), &_external_vehicle_position_pub, &topic_pos, &inst, ORB_PRIO_DEFAULT);

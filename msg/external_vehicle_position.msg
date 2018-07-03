@@ -3,4 +3,6 @@ uint8 id
 float64 lat
 float64 lon
 float32 alt # meters, AMSL
-uint16 hdg # degrees
+
+float32 yaw # radians
+bool yaw_valid

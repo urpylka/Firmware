@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <drivers/drv_hrt.h>
+#include <lib/ecl/geo/geo.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -22,7 +23,7 @@
 #define CHARGING_STATION_ID 17
 #define CHARGING_STATION_LAT 47.3976174
 #define CHARGING_STATION_LON 8.5455089
-#define CHARGING_STATION_HDG 0
+#define CHARGING_STATION_HDG 90 // heading the East
 
 charging_station_state_s state;
 
@@ -43,7 +44,8 @@ int fake_charging_station_thread_main(int argc, char *argv[]) {
 		.alt = 0,
 		.lat = CHARGING_STATION_LAT,
 		.lon = CHARGING_STATION_LON,
-		.hdg = CHARGING_STATION_HDG
+		.yaw = _wrap_pi(CHARGING_STATION_HDG * M_DEG_TO_RAD_F),
+		.yaw_valid = true
 	};
 
 	orb_advert_t state_pub = orb_advertise(ORB_ID(charging_station_state), &state);
