@@ -251,25 +251,49 @@ Mission::on_active()
 	}
 
 	if ((_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND ||
-	    (_mission_item.nav_cmd == NAV_CMD_LAND && _mission_item.land_precision == 0)) &&
-	    (int)_mission_item.params[2] != 0) {
-		// Land to charging station handling
+	    _mission_item.nav_cmd == NAV_CMD_LAND) &&
+	    (int)_mission_item.params[2] != 0) { // Handle landing to charging station
+
 		bool external_position_updated;
+		external_vehicle_position_s charging_station_position;
+		position_setpoint_triplet_s *sp = _navigator->get_position_setpoint_triplet();
 		int external_vehicle_position_sub = _navigator->get_external_vehicle_position_sub();
+
+		// update charging station position
 		orb_check(external_vehicle_position_sub, &external_position_updated);
-		if (external_position_updated) {
-			external_vehicle_position_s charging_station_position;
-			orb_copy(ORB_ID(external_vehicle_position), external_vehicle_position_sub, &charging_station_position);
+		orb_copy(ORB_ID(external_vehicle_position), external_vehicle_position_sub, &charging_station_position);
 
-			if (charging_station_position.id == (int)_mission_item.params[2]) {
-				mavlink_log_info(_navigator->get_mavlink_log_pub(), "Land position correction from charging station %d", charging_station_position.id);
-
-				position_setpoint_triplet_s *sp;
-				sp = _navigator->get_position_setpoint_triplet();
+		if (_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND) { // moving to land point
+			if (external_position_updated && charging_station_position.id == (int)_mission_item.params[2]) {
 				sp->current.lat = charging_station_position.lat;
 				sp->current.lon = charging_station_position.lon;
 				sp->current.valid = true;
-				copy_positon_if_valid(&_mission_item, &sp->current);
+				copy_positon_if_valid(&_mission_item, &sp->current); // update mission item to reched check correctly
+				_navigator->set_position_setpoint_triplet_updated();
+			}
+
+		} else if (_mission_item.nav_cmd == NAV_CMD_LAND) { // performing landing
+			if (_mission_item.land_precision == 0) { // not a precision landing
+				if (charging_station_position.id == (int)_mission_item.params[2]) {
+					sp->current.lat = charging_station_position.lat;
+					sp->current.lon = charging_station_position.lon;
+					sp->current.valid = true;
+				}
+
+				// check are we in acceptance radius
+				float horiz_dist = get_distance_to_next_waypoint(
+						_navigator->get_global_position()->lat,
+						_navigator->get_global_position()->lon,
+						sp->current.lat, sp->current.lon);
+
+				if (horiz_dist > 0.5) {
+					sp->current.alt = _navigator->get_global_position()->alt;
+					sp->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+				} else {
+					sp->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
+				}
+
 				_navigator->set_position_setpoint_triplet_updated();
 			}
 		}
