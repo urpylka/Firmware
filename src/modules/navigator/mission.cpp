@@ -286,7 +286,7 @@ Mission::on_active()
 						_navigator->get_global_position()->lon,
 						sp->current.lat, sp->current.lon);
 
-				if (horiz_dist > 0.5) {
+				if (horiz_dist > 0.5f) {
 					sp->current.alt = _navigator->get_global_position()->alt;
 					sp->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
