@@ -56,6 +56,10 @@ int charging_station_distance_monitor_thread(int argc, char *argv[]) {
 		mavlink_log_info(&mavlink_log_pub, buf);
 	}
 
+	PX4_INFO("Exiting charging station distance monitor");
+	orb_unsubscribe(cs_pos_sub);
+	orb_unsubscribe(v_pos_sub);
+
 	return 0;
 }
 
@@ -91,6 +95,9 @@ int charging_station_state_monitor_thread(int argc, char *argv[]) {
 		sprintf(buf, "CS %d state: %s (%d)", state.id, cs_state_str(state.custom_mode), state.custom_mode);
 		mavlink_log_info(&mavlink_log_pub, buf);
 	}
+
+	PX4_INFO("Exiting charging station state monitor");
+	orb_unsubscribe(state_sub);
 
 	return 0;
 }
