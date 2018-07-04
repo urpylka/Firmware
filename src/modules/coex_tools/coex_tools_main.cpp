@@ -23,6 +23,7 @@
 #define CHARGING_STATION_ID 17
 
 static orb_advert_t mavlink_log_pub;
+static bool should_exit;
 
 extern "C" __EXPORT int coex_tools_main(int argc, char *argv[]);
 int charging_station_distance_monitor_thread(int argc, char *argv[]);
@@ -41,7 +42,7 @@ int charging_station_distance_monitor_thread(int argc, char *argv[]) {
 	fds[0].fd = cs_pos_sub;
 	fds[0].events = POLLIN;
 
-	while (true) {
+	while (!should_exit) {
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 10000);
 		if (pret <= 0) {
 			continue;
@@ -60,6 +61,8 @@ int charging_station_distance_monitor_thread(int argc, char *argv[]) {
 		sprintf(buf, "CS %d distance: %g m", cs_pos.id, (double)dist);
 		mavlink_log_info(&mavlink_log_pub, buf);
 	}
+
+	return 0;
 }
 
 const char *cs_state_str(uint32_t custom_mode) {
@@ -83,7 +86,7 @@ int charging_station_state_monitor_thread(int argc, char *argv[]) {
 	fds[0].fd = state_sub;
 	fds[0].events = POLLIN;
 
-	while (true) {
+	while (!should_exit) {
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 10000);
 		if (pret <= 0) {
 			continue;
@@ -94,28 +97,35 @@ int charging_station_state_monitor_thread(int argc, char *argv[]) {
 		sprintf(buf, "CS %d state: %s (%d)", state.id, cs_state_str(state.custom_mode), state.custom_mode);
 		mavlink_log_info(&mavlink_log_pub, buf);
 	}
+
+	return 0;
 }
 
 int coex_tools_main(int argc, char *argv[]) {
 	if (argc < 2) {
-		PX4_INFO("usage: coex_tools {cs_dist_mon|cs_hb_mon}");
+		PX4_INFO("usage: coex_tools {cs_dist_mon|cs_hb_mon|stop}");
 		return 1;
 
 	} else if (strcmp(argv[1], "cs_dist_mon") == 0) {
+		should_exit = false;
 		__attribute__((unused)) px4_task_t deamon_task = px4_task_spawn_cmd("cs_dist_mon",
 						SCHED_DEFAULT,
 						1,
-						200,
-						charging_station_distance_monitor_thread,
+						1000,
+						(px4_main_t)&charging_station_distance_monitor_thread,
 						nullptr);
 
 	} else if (strcmp(argv[1], "cs_hb_mon") == 0) {
+		should_exit = false;
 		__attribute__((unused)) px4_task_t deamon_task = px4_task_spawn_cmd("cs_hb_mon",
 						SCHED_DEFAULT,
 						1,
-						200,
-						charging_station_state_monitor_thread,
+						1000,
+						(px4_main_t)&charging_station_state_monitor_thread,
 						nullptr);
+
+	} else if (strcmp(argv[1], "stop") == 0) {
+		should_exit = true;
 	}
 
 	return OK;
