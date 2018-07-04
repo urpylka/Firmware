@@ -20,8 +20,6 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/external_vehicle_position.h>
 
-#define CHARGING_STATION_ID 17
-
 static orb_advert_t mavlink_log_pub;
 static bool should_exit;
 
@@ -47,18 +45,14 @@ int charging_station_distance_monitor_thread(int argc, char *argv[]) {
 		if (pret <= 0) {
 			continue;
 		}
+
 		orb_copy(ORB_ID(external_vehicle_position), cs_pos_sub, &cs_pos);
-
-		if (cs_pos.id != CHARGING_STATION_ID) {
-			continue;
-		}
-
 		orb_copy(ORB_ID(vehicle_global_position), v_pos_sub, &v_pos);
 
 		float dist = get_distance_to_next_waypoint(v_pos.lat, v_pos.lon, cs_pos.lat, cs_pos.lon);
 
 		char buf[50];
-		sprintf(buf, "CS %d distance: %g m", cs_pos.id, (double)dist);
+		sprintf(buf, "Dist to %d: %g m", cs_pos.id, (double)dist);
 		mavlink_log_info(&mavlink_log_pub, buf);
 	}
 
