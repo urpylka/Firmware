@@ -23,6 +23,7 @@
 #define CHARGING_STATION_ID 17
 #define CHARGING_STATION_LAT 47.3976174
 #define CHARGING_STATION_LON 8.5455089
+#define CHARGING_STATION_ALT 487.0
 #define CHARGING_STATION_HDG 90 // heading the East
 
 charging_station_state_s state;
@@ -41,7 +42,7 @@ int fake_charging_station_thread_main(int argc, char *argv[]) {
 
 	external_vehicle_position_s pos = {
 		.id = CHARGING_STATION_ID,
-		.alt = 0,
+		.alt = CHARGING_STATION_ALT,
 		.lat = CHARGING_STATION_LAT,
 		.lon = CHARGING_STATION_LON,
 		.yaw = _wrap_pi(CHARGING_STATION_HDG * M_DEG_TO_RAD_F),

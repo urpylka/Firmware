@@ -50,9 +50,10 @@ int charging_station_distance_monitor_thread(int argc, char *argv[]) {
 		orb_copy(ORB_ID(vehicle_global_position), v_pos_sub, &v_pos);
 
 		float dist = get_distance_to_next_waypoint(v_pos.lat, v_pos.lon, cs_pos.lat, cs_pos.lon);
+		float alt = v_pos.alt - cs_pos.alt;
 
 		char buf[50];
-		sprintf(buf, "Dist to %d: %g m", cs_pos.id, (double)dist);
+		sprintf(buf, "Dist to %d: %g cm, alt: %g m", cs_pos.id, (double)(dist * 100), (double)alt);
 		mavlink_log_info(&mavlink_log_pub, buf);
 	}
 
@@ -112,7 +113,7 @@ int coex_tools_main(int argc, char *argv[]) {
 		__attribute__((unused)) px4_task_t deamon_task = px4_task_spawn_cmd("cs_dist_mon",
 						SCHED_DEFAULT,
 						1,
-						1000,
+						1200,
 						(px4_main_t)&charging_station_distance_monitor_thread,
 						nullptr);
 
@@ -121,7 +122,7 @@ int coex_tools_main(int argc, char *argv[]) {
 		__attribute__((unused)) px4_task_t deamon_task = px4_task_spawn_cmd("cs_hb_mon",
 						SCHED_DEFAULT,
 						1,
-						1000,
+						1200,
 						(px4_main_t)&charging_station_state_monitor_thread,
 						nullptr);
 
