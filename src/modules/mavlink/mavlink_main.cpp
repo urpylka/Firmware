@@ -548,7 +548,7 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 {
 	Mavlink *inst;
 	LL_FOREACH(_mavlink_instances, inst) {
-		if (inst != self) {
+		if (inst != self || msg->msgid == MAVLINK_MSG_ID_STATUSTEXT) {
 			const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
 
 			// Extract target system and target component if set
