@@ -425,26 +425,6 @@ MissionBlock::issue_command(const mission_item_s &item)
 	if (item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
 		PX4_INFO("DO_SET_SERVO command");
                 
-//                int ret;    
-//                file fd;
-//                
-//                struct pwm_output_values min_pwm;
-//		struct pwm_output_values max_pwm;
-//                
-//                ret = PX4FMU::pwm_ioctl(&fd, PWM_SERVO_GET_MIN_PWM, (unsigned long)&min_pwm);
-//
-//		if (ret != OK) {
-//			PX4_ERR("PWM_SERVO_GET_MIN_PWM");
-//			return 1;
-//		}
-//
-//		ret = PX4FMU::pwm_ioctl(&fd, PWM_SERVO_GET_MAX_PWM, (unsigned long)&max_pwm);
-//
-//		if (ret != OK) {
-//			PX4_ERR("PWM_SERVO_GET_MAX_PWM");
-//			return 1;
-//		}
-
 		// XXX: we should issue a vehicle command and handle this somewhere else
 		actuator_controls_s actuators = {};
 		actuators.timestamp = hrt_absolute_time();
@@ -458,7 +438,7 @@ MissionBlock::issue_command(const mission_item_s &item)
 		// params[1] new value for selected actuator in ms 900...2000
 //		actuators.control[(int)item.params[0]] = 1.0f / 2000 * -item.params[1];
                 actuators.control[(int)item.params[0]] = 
-                        (float)(((float)item.params[1] - (2000 + 1000) / 2)/((2000 - 1000) / 2));
+                        (float)(((float)item.params[1] - (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2)/((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2));
 //                effective_pwm[i] = control_value * (max_pwm[i] - min_pwm[i]) / 2 + (max_pwm[i] + min_pwm[i]) / 2;
                 
                 mavlink_log_emergency(&_mavlink_log_mission, "do_set_servo: pwm %f, orb %f", (double)item.params[1], (double)actuators.control[(int)item.params[0]]*1000);

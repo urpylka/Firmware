@@ -270,6 +270,8 @@ private:
 	param_t _p_bat_emergen_thr;
 	param_t _p_bat_crit_thr;
 	param_t _p_bat_low_thr;
+        
+        int _t_actuator_controls_2;
 
 	MavlinkReceiver(const MavlinkReceiver &) = delete;
 	MavlinkReceiver operator=(const MavlinkReceiver &) = delete;

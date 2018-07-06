@@ -172,6 +172,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_p_bat_crit_thr(param_find("BAT_CRIT_THR")),
 	_p_bat_low_thr(param_find("BAT_LOW_THR"))
 {
+        _t_actuator_controls_2 = orb_subscribe(ORB_ID(actuator_controls_2));
 }
 
 MavlinkReceiver::~MavlinkReceiver()
@@ -201,6 +202,8 @@ void MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t comman
 		orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
 	}
 }
+
+orb_advert_t		_mavlink_log_receiver;	///< mavlink log pub
 
 void
 MavlinkReceiver::handle_message(mavlink_message_t *msg)
@@ -354,11 +357,16 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
                 // XXX: we should issue a vehicle command and handle this somewhere else
 		actuator_controls_s actuators = {};
 		actuators.timestamp = hrt_absolute_time();
+                
+//                mavlink_log_emergency(&_mavlink_log_receiver, "Statustext received");
+                
+                orb_copy(ORB_ID(actuator_controls_2), _t_actuator_controls_2, 
+                        &actuators);
 
 		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
 		// params[1] new value for selected actuator in ms 900...2000
-                int pwm_test = 915;
-		actuators.control[0] = 1.0f / 2000 * -pwm_test;
+//                int pwm_test = 915;
+		actuators.control[0] = 0.17f;// / 2000 * -pwm_test;
                 
                 orb_advert_t    _actuator_pub{nullptr};
 //                for (unsigned i = 0; i < 200000; i++) {
