@@ -378,6 +378,8 @@ PrecLand::switch_to_state_horizontal_approach()
 
 		_point_reached_time = 0;
 
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Horizontal approach");
+
 		_state = PrecLandState::HorizontalApproach;
 		_state_start_time = hrt_absolute_time();
 		return true;
@@ -390,6 +392,8 @@ bool
 PrecLand::switch_to_state_descend_above_target()
 {
 	if (check_state_conditions(PrecLandState::DescendAboveTarget)) {
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Descent above target");
+
 		_state = PrecLandState::DescendAboveTarget;
 		_state_start_time = hrt_absolute_time();
 		return true;
@@ -402,6 +406,8 @@ bool
 PrecLand::switch_to_state_final_approach()
 {
 	if (check_state_conditions(PrecLandState::FinalApproach)) {
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Final approach");
+
 		_state = PrecLandState::FinalApproach;
 		_state_start_time = hrt_absolute_time();
 		return true;
@@ -423,6 +429,8 @@ PrecLand::switch_to_state_search()
 
 	_target_acquired_time = 0;
 
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Search");
+
 	_state = PrecLandState::Search;
 	_state_start_time = hrt_absolute_time();
 	return true;
@@ -431,6 +439,8 @@ PrecLand::switch_to_state_search()
 bool
 PrecLand::switch_to_state_fallback()
 {
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Landing fallback");
+
 	PX4_WARN("Falling back to normal land.");
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
