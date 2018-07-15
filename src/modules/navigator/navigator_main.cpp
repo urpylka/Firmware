@@ -792,7 +792,7 @@ int Navigator::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("navigator",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_NAVIGATION,
-				      1800,
+				      2500,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
