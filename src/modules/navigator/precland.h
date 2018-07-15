@@ -55,7 +55,8 @@ enum class PrecLandState {
 	FinalApproach, // Final landing approach, even without landing target
 	Search, // Search for landing target
 	Fallback, // Fallback landing method
-	Done // Done landing
+	Done, // Done landing
+	GoUp
 };
 
 enum class PrecLandMode {
@@ -72,11 +73,15 @@ public:
 	void on_activation() override;
 	void on_active() override;
 
+	bool is_mission_item_reached();
+
 	void set_mode(PrecLandMode mode) { _mode = mode; };
 
 	PrecLandMode get_mode() { return _mode; };
 
 private:
+	int frictions_count;
+
 	// run the control loop for each state
 	void run_state_start();
 	void run_state_horizontal_approach();
@@ -84,6 +89,7 @@ private:
 	void run_state_final_approach();
 	void run_state_search();
 	void run_state_fallback();
+	void run_state_go_up();
 
 	// attempt to switch to a different state. Returns true if state change was successful, false otherwise
 	bool switch_to_state_start();
@@ -93,6 +99,7 @@ private:
 	bool switch_to_state_search();
 	bool switch_to_state_fallback();
 	bool switch_to_state_done();
+	bool switch_to_state_go_up();
 
 	// check if a given state could be changed into. Return true if possible to transition to state, false otherwise
 	bool check_state_conditions(PrecLandState state);

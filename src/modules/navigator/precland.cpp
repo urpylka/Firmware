@@ -65,9 +65,17 @@ PrecLand::PrecLand(Navigator *navigator) :
 {
 }
 
+bool
+PrecLand::is_mission_item_reached()
+{
+	return _state == PrecLandState::Done;
+}
+
 void
 PrecLand::on_activation()
 {
+	frictions_count = 0;
+
 	// We need to subscribe here and not in the constructor because constructor is called before the navigator task is spawned
 	if (_target_pose_sub < 0) {
 		_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
@@ -147,6 +155,10 @@ PrecLand::on_active()
 
 	case PrecLandState::Fallback:
 		run_state_fallback();
+		break;
+
+	case PrecLandState::GoUp:
+		run_state_go_up();
 		break;
 
 	case PrecLandState::Done:
@@ -351,6 +363,33 @@ PrecLand::run_state_fallback()
 	// nothing to do, will land
 }
 
+void
+PrecLand::run_state_go_up()
+{
+	if (hrt_absolute_time() - _state_start_time > 4 * SEC2USEC) {
+		switch_to_state_search();
+	}
+}
+
+bool
+PrecLand::switch_to_state_go_up()
+{
+	PX4_INFO("Go up");
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Go up");
+
+	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
+
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	pos_sp_triplet->current.alt = vehicle_local_position->ref_alt + 3.3f;
+	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+	_navigator->set_position_setpoint_triplet_updated();
+
+	_state = PrecLandState::GoUp;
+	_state_start_time = hrt_absolute_time();
+	return true;
+}
+
+
 bool
 PrecLand::switch_to_state_start()
 {
@@ -406,10 +445,18 @@ bool
 PrecLand::switch_to_state_final_approach()
 {
 	if (check_state_conditions(PrecLandState::FinalApproach)) {
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Final approach");
+		frictions_count++;
+		if (frictions_count == 5) {
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "5 frictions, finish!");
+			return switch_to_state_done();
+		}
 
-		_state = PrecLandState::FinalApproach;
-		_state_start_time = hrt_absolute_time();
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Final approach (go up!)");
+
+		//_state = PrecLandState::FinalApproach;
+		//_state_start_time = hrt_absolute_time();
+		switch_to_state_done();
+		// switch_to_state_go_up();
 		return true;
 	}
 
@@ -457,6 +504,7 @@ PrecLand::switch_to_state_fallback()
 bool
 PrecLand::switch_to_state_done()
 {
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Switch to DONE");
 	_state = PrecLandState::Done;
 	_state_start_time = hrt_absolute_time();
 	return true;
