@@ -263,6 +263,20 @@ Mission::on_active()
 	}
 
 	if (_work_item_type == WORK_ITEM_TYPE_PRECISION_LAND) {
+
+		if (_navigator->get_precland()->is_mission_item_reached()) {
+			if (_mission_item.autocontinue) {
+				mavlink_log_info(_navigator->get_mavlink_log_pub(), "payload acquired, advance");
+
+				/* switch to next waypoint if 'autocontinue' flag set */
+				_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+				_navigator->get_precland()->on_inactivation();
+				advance_mission();
+				set_mission_items();
+				return;
+			}
+		}
+
 		// switch out of precision land once landed
 		if (_navigator->get_land_detected()->landed) {
 			_navigator->get_precland()->on_inactivation();
