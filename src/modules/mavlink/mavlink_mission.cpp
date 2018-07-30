@@ -1319,6 +1319,13 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4));
 			break;
 
+		case MAV_CMD_WAYPOINT_USER_2:
+			mission_item->nav_cmd = NAV_CMD_UTC_WAYPOINT;
+			mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4));
+			mission_item->params[0] = mavlink_mission_item->param1;
+			mission_item->params[1] = mavlink_mission_item->param2;
+			mission_item->params[2] = mavlink_mission_item->param3;
+
 		case MAV_CMD_NAV_LOITER_UNLIM:
 			mission_item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 			mission_item->loiter_radius = mavlink_mission_item->param3;
