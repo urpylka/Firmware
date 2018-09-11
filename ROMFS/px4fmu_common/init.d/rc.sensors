@@ -257,6 +257,11 @@ then
 	vl53lxx start
 	pmw3901 start
 
+else
+	if param greater SENS_EN_VL53LXX 0
+	then
+		vl53lxx start
+	fi
 fi
 
 if ver hwcmp AEROFC_V1
