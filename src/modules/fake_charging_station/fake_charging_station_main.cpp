@@ -30,24 +30,26 @@ charging_station_state_s state;
 
 extern "C" __EXPORT int fake_charging_station_main(int argc, char *argv[]);
 
+int fake_charging_station_thread_main(int argc, char *argv[]);
+
 int fake_charging_station_thread_main(int argc, char *argv[]) {
 	PX4_INFO("Starting fake charging station publisher");
 
-	state = {
-		.id = CHARGING_STATION_ID,
-		.base_mode = charging_station_state_s::BASE_MODE_FLAG_CUSTOM_MODE_ENABLED,
-		.system_status = 0,
-		.custom_mode = charging_station_state_s::CUSTOM_MODE_CLOSED
-	};
+	state = {};
 
-	external_vehicle_position_s pos = {
-		.id = CHARGING_STATION_ID,
-		.alt = CHARGING_STATION_ALT,
-		.lat = CHARGING_STATION_LAT,
-		.lon = CHARGING_STATION_LON,
-		.yaw = _wrap_pi(CHARGING_STATION_HDG * M_DEG_TO_RAD_F),
-		.yaw_valid = true
-	};
+	state.id = CHARGING_STATION_ID;
+	state.base_mode = charging_station_state_s::BASE_MODE_FLAG_CUSTOM_MODE_ENABLED;
+	state.system_status = 0;
+	state.custom_mode = charging_station_state_s::CUSTOM_MODE_CLOSED;
+
+	external_vehicle_position_s pos = {};
+
+	pos.id = CHARGING_STATION_ID;
+	pos.alt = CHARGING_STATION_ALT;
+	pos.lat = CHARGING_STATION_LAT;
+	pos.lon = CHARGING_STATION_LON;
+	pos.yaw = _wrap_pi(CHARGING_STATION_HDG * M_DEG_TO_RAD_F);
+	pos.yaw_valid = true;
 
 	orb_advert_t state_pub = orb_advertise(ORB_ID(charging_station_state), &state);
 	orb_advert_t pos_pub = orb_advertise(ORB_ID(external_vehicle_position), &pos);
