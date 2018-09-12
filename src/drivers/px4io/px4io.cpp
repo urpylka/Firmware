@@ -70,9 +70,8 @@
 #include <lib/mixer/mixer.h>
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 #include <parameters/param.h>
-#include <systemlib/circuit_breaker.h>
+#include <circuit_breaker/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
 
 #include <uORB/topics/actuator_controls.h>
@@ -1813,6 +1812,11 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	/* last thing set are the actual channel values as 16 bit values */
 	for (unsigned i = 0; i < channel_count; i++) {
 		input_rc.values[i] = regs[prolog + i];
+	}
+
+	/* zero the remaining fields */
+	for (unsigned i = channel_count; i < (sizeof(input_rc.values) / sizeof(input_rc.values[0])); i++) {
+		input_rc.values[i] = 0;
 	}
 
 	/* get RSSI from input channel */

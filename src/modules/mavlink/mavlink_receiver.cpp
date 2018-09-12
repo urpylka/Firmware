@@ -71,17 +71,23 @@
 #include <stdlib.h>
 #include <poll.h>
 
+#include <sys/stat.h>
+#ifdef __PX4_DARWIN
+#include <sys/param.h>
+#include <sys/mount.h>
+#else
+#include <sys/statfs.h>
+#endif
+
+#include <airspeed/airspeed.h>
+#include <ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
-
 #include <conversion/rotation.h>
-
 #include <parameters/param.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
-#include <systemlib/airspeed.h>
+
 #include <commander/px4_custom_mode.h>
-#include <lib/ecl/geo/geo.h>
 
 #include <uORB/topics/vehicle_command_ack.h>
 
@@ -89,6 +95,8 @@
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 #include "mavlink_command_sender.h"
+
+using matrix::wrap_2pi;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink(parent),
@@ -125,6 +133,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_vision_position_pub(nullptr),
 	_vision_attitude_pub(nullptr),
 	_telemetry_status_pub(nullptr),
+	_ping_pub(nullptr),
 	_rc_pub(nullptr),
 	_manual_pub(nullptr),
 	_obstacle_distance_pub(nullptr),
@@ -444,6 +453,46 @@ MavlinkReceiver::send_flight_information()
 }
 
 void
+MavlinkReceiver::send_storage_information(int storage_id)
+{
+	mavlink_storage_information_t storage_info{};
+	const char *microsd_dir = PX4_ROOTFSDIR"/fs/microsd";
+
+	if (storage_id == 0 || storage_id == 1) { // request is for all or the first storage
+		storage_info.storage_id = 1;
+
+		struct statfs statfs_buf;
+		uint64_t total_bytes = 0;
+		uint64_t avail_bytes = 0;
+
+		if (statfs(microsd_dir, &statfs_buf) == 0) {
+			total_bytes = (uint64_t)statfs_buf.f_blocks * statfs_buf.f_bsize;
+			avail_bytes = (uint64_t)statfs_buf.f_bavail * statfs_buf.f_bsize;
+		}
+
+		if (total_bytes == 0) { // on NuttX we get 0 total bytes if no SD card is inserted
+			storage_info.storage_count = 0;
+			storage_info.status = 0; // not available
+
+		} else {
+			storage_info.storage_count = 1;
+			storage_info.status = 2; // available & formatted
+			storage_info.total_capacity = total_bytes / 1024. / 1024.;
+			storage_info.available_capacity = avail_bytes / 1024. / 1024.;
+			storage_info.used_capacity = (total_bytes - avail_bytes) / 1024. / 1024.;
+		}
+
+	} else {
+		// only one storage supported
+		storage_info.storage_id = storage_id;
+		storage_info.storage_count = 1;
+	}
+
+	storage_info.time_boot_ms = hrt_absolute_time() / 1000;
+	mavlink_msg_storage_information_send_struct(_mavlink->get_channel(), &storage_info);
+}
+
+void
 MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 {
 	/* command */
@@ -537,6 +586,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
 		send_flight_information();
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_STORAGE_INFORMATION) {
+		if ((int)(cmd_mavlink.param2 + 0.5f) == 1) {
+			send_storage_information(cmd_mavlink.param1 + 0.5f);
+		}
 
 	} else {
 
@@ -1294,10 +1348,15 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					att_sp.timestamp = hrt_absolute_time();
 
 					if (!ignore_attitude_msg) { // only copy att sp if message contained new data
-						mavlink_quaternion_to_euler(set_attitude_target.q, &att_sp.roll_body, &att_sp.pitch_body, &att_sp.yaw_body);
-						att_sp.yaw_sp_move_rate = 0.0;
-						memcpy(att_sp.q_d, set_attitude_target.q, sizeof(att_sp.q_d));
+						matrix::Quatf q(set_attitude_target.q);
+						q.copyTo(att_sp.q_d);
 						att_sp.q_d_valid = true;
+
+						matrix::Eulerf euler{q};
+						att_sp.roll_body = euler.phi();
+						att_sp.pitch_body = euler.theta();
+						att_sp.yaw_body = euler.psi();
+						att_sp.yaw_sp_move_rate = 0.0f;
 					}
 
 					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
@@ -1371,6 +1430,77 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 
 		} else {
 			orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+		}
+	}
+}
+
+void
+MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
+{
+	mavlink_ping_t ping;
+	mavlink_msg_ping_decode(msg, &ping);
+
+	if ((ping.target_system == 0) &&
+	    (ping.target_component == 0)) {	   // This is a ping request. Return it to the system which requested the ping.
+
+		ping.target_system = msg->sysid;
+		ping.target_component = msg->compid;
+		mavlink_msg_ping_send_struct(_mavlink->get_channel(), &ping);
+
+	} else if ((ping.target_system == mavlink_system.sysid) &&
+		   (ping.target_component ==
+		    mavlink_system.compid)) {	// This is a returned ping message from this system. Calculate latency from it.
+
+		const hrt_abstime now = hrt_absolute_time();
+
+		// Calculate round trip time
+		float rtt_ms = (now - ping.time_usec) / 1000.0f;
+
+		// Update ping statistics
+		struct Mavlink::ping_statistics_s &pstats = _mavlink->get_ping_statistics();
+
+		pstats.last_ping_time = now;
+
+		if (pstats.last_ping_seq == 0 && ping.seq > 0) {
+			// This is the first reply we are receiving from an offboard system.
+			// We may have been broadcasting pings for some time before it came online,
+			// and these do not count as dropped packets.
+
+			// Reset last_ping_seq counter for correct packet drop detection
+			pstats.last_ping_seq = ping.seq - 1;
+		}
+
+		// We can only count dropped packets after the first message
+		if (ping.seq > pstats.last_ping_seq) {
+			pstats.dropped_packets += ping.seq - pstats.last_ping_seq - 1;
+		}
+
+		pstats.last_ping_seq = ping.seq;
+		pstats.last_rtt = rtt_ms;
+		pstats.mean_rtt = (rtt_ms + pstats.mean_rtt) / 2.0f;
+		pstats.max_rtt = fmaxf(rtt_ms, pstats.max_rtt);
+		pstats.min_rtt = pstats.min_rtt > 0.0f ? fminf(rtt_ms, pstats.min_rtt) : rtt_ms;
+
+		/* Ping status is supported only on first ORB_MULTI_MAX_INSTANCES mavlink channels */
+		if (_mavlink->get_channel() < (mavlink_channel_t)ORB_MULTI_MAX_INSTANCES) {
+
+			struct ping_s uorb_ping_msg = {};
+
+			uorb_ping_msg.timestamp = now;
+			uorb_ping_msg.ping_time = ping.time_usec;
+			uorb_ping_msg.ping_sequence = ping.seq;
+			uorb_ping_msg.dropped_packets = pstats.dropped_packets;
+			uorb_ping_msg.rtt_ms = rtt_ms;
+			uorb_ping_msg.system_id = msg->sysid;
+			uorb_ping_msg.component_id = msg->compid;
+
+			if (_ping_pub == nullptr) {
+				int multi_instance;
+				_ping_pub = orb_advertise_multi(ORB_ID(ping), &uorb_ping_msg, &multi_instance, ORB_PRIO_DEFAULT);
+
+			} else {
+				orb_publish(ORB_ID(ping), _ping_pub, &uorb_ping_msg);
+			}
 		}
 	}
 }
@@ -1735,18 +1865,6 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 	}
 }
 
-void
-MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
-{
-	mavlink_ping_t ping;
-	mavlink_msg_ping_decode(msg, &ping);
-
-	if ((mavlink_system.sysid == ping.target_system) &&
-	    (mavlink_system.compid == ping.target_component)) {
-		mavlink_msg_ping_send_struct(_mavlink->get_channel(), &ping);
-	}
-}
-
 int
 MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
 {
@@ -1972,7 +2090,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	hil_gps.vel_e_m_s = gps.ve * 1e-2f; // from cm to m
 	hil_gps.vel_d_m_s = gps.vd * 1e-2f; // from cm to m
 	hil_gps.vel_ned_valid = true;
-	hil_gps.cog_rad = _wrap_pi(gps.cog * M_DEG_TO_RAD_F * 1e-2f);
+	hil_gps.cog_rad = ((gps.cog == 65535) ? NAN : wrap_2pi(math::radians(gps.cog * 1e-2f)));
 
 	hil_gps.fix_type = gps.fix_type;
 	hil_gps.satellites_used = gps.satellites_visible;  //TODO: rename mavlink_hil_gps_t sats visible to used?
@@ -2223,8 +2341,10 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		_hil_local_pos.yaw = euler.psi();
 		_hil_local_pos.xy_global = true;
 		_hil_local_pos.z_global = true;
-		_hil_local_pos.vxy_max = 0.0f;
-		_hil_local_pos.limit_hagl = false;
+		_hil_local_pos.vxy_max = INFINITY;
+		_hil_local_pos.vz_max = INFINITY;
+		_hil_local_pos.hagl_min = INFINITY;
+		_hil_local_pos.hagl_max = INFINITY;
 
 		if (_local_pos_pub == nullptr) {
 			_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &_hil_local_pos);
@@ -2369,7 +2489,7 @@ void MavlinkReceiver::handle_message_global_position_int(mavlink_message_t *msg)
 	topic_pos.yaw_valid = pos.hdg != UINT16_MAX;
 
 	if (topic_pos.yaw_valid) {
-		topic_pos.yaw = _wrap_pi(pos.hdg * 1e2f * M_DEG_TO_RAD_F);
+		topic_pos.yaw = matrix::wrap_pi(pos.hdg * 1e2f * M_DEG_TO_RAD_F);
 	}
 
 	int inst = 0;
@@ -2392,6 +2512,22 @@ MavlinkReceiver::receive_thread(void *arg)
 
 	// poll timeout in ms. Also defines the max update frequency of the mission & param manager, etc.
 	const int timeout = 10;
+
+	// publish the telemetry status once for the iridium telemetry
+	if (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_IRIDIUM) {
+		struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
+
+		tstatus.timestamp = hrt_absolute_time();
+		tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM;
+
+		if (_telemetry_status_pub == nullptr) {
+			int multi_instance;
+			_telemetry_status_pub = orb_advertise_multi(ORB_ID(telemetry_status), &tstatus, &multi_instance, ORB_PRIO_HIGH);
+
+		} else {
+			orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+		}
+	}
 
 #ifdef __PX4_POSIX
 	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */

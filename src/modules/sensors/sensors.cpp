@@ -68,8 +68,7 @@
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_px4flow.h>
 
-#include <systemlib/airspeed.h>
-#include <systemlib/systemlib.h>
+#include <airspeed/airspeed.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
 #include <perf/perf_counter.h>
@@ -136,8 +135,7 @@ class Sensors : public ModuleBase<Sensors>, public ModuleParams
 {
 public:
 	Sensors(bool hil_enabled);
-
-	~Sensors() {}
+	~Sensors() = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -584,7 +582,7 @@ void
 Sensors::run()
 {
 	if (!_hil_enabled) {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_BEBOP)
+#if !defined(__PX4_QURT) && BOARD_NUMBER_BRICKS > 0
 		adc_init();
 #endif
 	}

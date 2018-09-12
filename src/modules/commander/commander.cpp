@@ -58,6 +58,7 @@
 #include "px4_custom_mode.h"
 #include "rc_calibration.h"
 #include "state_machine_helper.h"
+#include "health_flag_helper.h"
 
 /* PX4 headers */
 #include <dataman/dataman.h>
@@ -72,13 +73,11 @@
 #include <px4_shutdown.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
-#include <systemlib/circuit_breaker.h>
+#include <circuit_breaker/circuit_breaker.h>
 #include <systemlib/err.h>
 #include <systemlib/hysteresis/hysteresis.h>
 #include <systemlib/mavlink_log.h>
 #include <parameters/param.h>
-#include <systemlib/rc_check.h>
-#include <systemlib/state_table.h>
 
 #include <cmath>
 #include <cfloat>
@@ -184,6 +183,9 @@ static uint8_t arm_requirements = ARM_REQ_NONE;
 static bool _last_condition_global_position_valid = false;
 
 static struct vehicle_land_detected_s land_detector = {};
+
+static float _eph_threshold_adj = INFINITY;	///< maximum allowable horizontal position uncertainty after adjustment for flight condition
+static bool _skip_pos_accuracy_check = false;
 
 /**
  * The daemon app only briefly exists to start
@@ -587,7 +589,8 @@ Commander::Commander() :
 	ModuleParams(nullptr),
 	_mission_result_sub(ORB_ID(mission_result)),
 	_global_position_sub(ORB_ID(vehicle_global_position)),
-	_local_position_sub(ORB_ID(vehicle_local_position))
+	_local_position_sub(ORB_ID(vehicle_local_position)),
+	_iridiumsbd_status_sub(ORB_ID(iridiumsbd_status))
 {
 }
 
@@ -1020,8 +1023,18 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	}
 	break;
 	case vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY: {
-			// only send the acknowledge from the commander, the command actually is handled by each mavlink instance
-			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			bool hl_exists = false;
+			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+				if (_telemetry[i].high_latency) {
+					hl_exists = true;
+				}
+			}
+
+			// if no high latency telemetry exists send a failed acknowledge
+			if (!hl_exists) {
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_FAILED;
+				mavlink_log_critical(&mavlink_log_pub, "Control high latency failed, no hl telemetry available");
+			}
 		}
 		break;
 
@@ -1245,6 +1258,7 @@ Commander::run()
 
 	status_flags.condition_power_input_valid = true;
 	status_flags.usb_connected = false;
+	status_flags.rc_calibration_valid = true;
 
 	// CIRCUIT BREAKERS
 	status_flags.circuit_breaker_engaged_power_check = false;
@@ -1297,6 +1311,7 @@ Commander::run()
 	bool low_battery_voltage_actions_done = false;
 	bool critical_battery_voltage_actions_done = false;
 	bool emergency_battery_voltage_actions_done = false;
+	bool dangerous_battery_level_requests_poweroff = false;
 
 	bool status_changed = true;
 	bool param_init_forced = true;
@@ -1726,6 +1741,19 @@ Commander::run()
 		_local_position_sub.update();
 		_global_position_sub.update();
 
+		// Set the allowable positon uncertainty based on combination of flight and estimator state
+		// When we are in a operator demanded position control mode and are solely reliant on optical flow, do not check position error becasue it will gradually increase throughout flight and the operator will compensate for the drift
+		bool reliant_on_opt_flow = ((estimator_status.control_mode_flags & (1 << estimator_status_s::CS_OPT_FLOW))
+					    && !(estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS))
+					    && !(estimator_status.control_mode_flags & (1 << estimator_status_s::CS_EV_POS)));
+		bool operator_controlled_position = (internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL);
+		_skip_pos_accuracy_check = reliant_on_opt_flow && operator_controlled_position;
+		if (_skip_pos_accuracy_check) {
+			_eph_threshold_adj = INFINITY;
+		} else {
+			_eph_threshold_adj = _eph_threshold.get();
+		}
+
 		// Check if quality checking of position accuracy and consistency is to be performed
 		const bool run_quality_checks = !status_flags.circuit_breaker_engaged_posfailure_check;
 
@@ -1791,15 +1819,23 @@ Commander::run()
 				status_flags.condition_local_velocity_valid = false;
 
 			} else {
-				// use global position message to determine validity
-				const vehicle_global_position_s&global_position = _global_position_sub.get();
-				check_posvel_validity(true, global_position.eph, _eph_threshold.get(), global_position.timestamp, &_last_gpos_fail_time_us, &_gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
+				if (!_skip_pos_accuracy_check) {
+					// use global position message to determine validity
+					const vehicle_global_position_s&global_position = _global_position_sub.get();
+					check_posvel_validity(true, global_position.eph, _eph_threshold_adj, global_position.timestamp, &_last_gpos_fail_time_us, &_gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
+				}
 
 				// use local position message to determine validity
 				const vehicle_local_position_s &local_position = _local_position_sub.get();
-				check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold.get(), local_position.timestamp, &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, &status_changed);
+				check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold_adj, local_position.timestamp, &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, &status_changed);
 				check_posvel_validity(local_position.v_xy_valid, local_position.evh, _evh_threshold.get(), local_position.timestamp, &_last_lvel_fail_time_us, &_lvel_probation_time_us, &status_flags.condition_local_velocity_valid, &status_changed);
 			}
+		}
+
+		if((_last_condition_global_position_valid != status_flags.condition_global_position_valid) && status_flags.condition_global_position_valid) {
+			// If global position state changed and is now valid, set respective health flags to true. For now also assume GPS is OK if global pos is OK, but not vice versa.
+			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, status);
+			set_health_flags_present_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, status);
 		}
 
 		check_valid(_local_position_sub.get().timestamp, _failsafe_pos_delay.get() * 1_s, _local_position_sub.get().z_valid, &(status_flags.condition_local_altitude_valid), &status_changed);
@@ -1945,17 +1981,9 @@ Commander::run()
 					emergency_battery_voltage_actions_done = true;
 
 					if (!armed.armed) {
-						mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
-						usleep(200000);
-						int ret_val = px4_shutdown_request(false, false);
-
-						if (ret_val) {
-							mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
-
-						} else {
-							while (1) { usleep(1); }
-						}
-
+						// Request shutdown at the end of the cycle. This allows
+						// the vehicle state to be published after emergency landing
+						dangerous_battery_level_requests_poweroff = true;
 					} else {
 						if (low_bat_action == 2 || low_bat_action == 3) {
 							if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state)) {
@@ -1978,40 +2006,15 @@ Commander::run()
 			}
 		}
 
-		/* update subsystem */
-		orb_check(subsys_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(subsystem_info), subsys_sub, &info);
-
-			//warnx("subsystem changed: %d\n", (int)info.subsystem_type);
-
-			/* mark / unmark as present */
-			if (info.present) {
-				status.onboard_control_sensors_present |= info.subsystem_type;
-
-			} else {
-				status.onboard_control_sensors_present &= ~info.subsystem_type;
+		/* update subsystem info which arrives from outside of commander*/
+		do {
+			orb_check(subsys_sub, &updated);
+			if (updated) {
+				orb_copy(ORB_ID(subsystem_info), subsys_sub, &info);
+				set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
+				status_changed = true;
 			}
-
-			/* mark / unmark as enabled */
-			if (info.enabled) {
-				status.onboard_control_sensors_enabled |= info.subsystem_type;
-
-			} else {
-				status.onboard_control_sensors_enabled &= ~info.subsystem_type;
-			}
-
-			/* mark / unmark as ok */
-			if (info.ok) {
-				status.onboard_control_sensors_health |= info.subsystem_type;
-
-			} else {
-				status.onboard_control_sensors_health &= ~info.subsystem_type;
-			}
-
-			status_changed = true;
-		}
+		} while(updated);
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
@@ -2208,11 +2211,13 @@ Commander::run()
 			/* handle the case where RC signal was regained */
 			if (!status_flags.rc_signal_found_once) {
 				status_flags.rc_signal_found_once = true;
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true && status_flags.rc_calibration_valid, status);
 				status_changed = true;
 
 			} else {
 				if (status.rc_signal_lost) {
 					mavlink_log_info(&mavlink_log_pub, "MANUAL CONTROL REGAINED after %llums", hrt_elapsed_time(&rc_signal_lost_timestamp) / 1000);
+					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true && status_flags.rc_calibration_valid, status);
 					status_changed = true;
 				}
 			}
@@ -2360,6 +2365,7 @@ Commander::run()
 				mavlink_log_critical(&mavlink_log_pub, "MANUAL CONTROL LOST (at t=%llums)", hrt_absolute_time() / 1000);
 				status.rc_signal_lost = true;
 				rc_signal_lost_timestamp = sp_man.timestamp;
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, status);
 				status_changed = true;
 			}
 		}
@@ -2397,6 +2403,7 @@ Commander::run()
 						status_changed = true;
 
 						PX4_ERR("Engine Failure");
+						set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, true, true, false, status);
 					}
 				}
 
@@ -2724,6 +2731,21 @@ Commander::run()
 		}
 
 		arm_auth_update(now, params_updated || param_init_forced);
+
+		// Handle shutdown request from emergency battery action
+		if(!armed.armed && dangerous_battery_level_requests_poweroff){
+			mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
+			usleep(200000);
+			int ret_val = px4_shutdown_request(false, false);
+
+			if (ret_val) {
+				mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
+				dangerous_battery_level_requests_poweroff = false;
+
+			} else {
+				while (1) { usleep(1); }
+			}
+		}
 
 		usleep(COMMANDER_MONITORING_INTERVAL);
 	}
@@ -3320,8 +3342,10 @@ Commander::reset_posvel_validity(bool *changed)
 	const vehicle_global_position_s &global_position = _global_position_sub.get();
 
 	// recheck validity
-	check_posvel_validity(true, global_position.eph, _eph_threshold.get(), global_position.timestamp, &_last_gpos_fail_time_us, &_gpos_probation_time_us, &status_flags.condition_global_position_valid, changed);
-	check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold.get(), local_position.timestamp, &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, changed);
+	if (!_skip_pos_accuracy_check) {
+		check_posvel_validity(true, global_position.eph, _eph_threshold_adj, global_position.timestamp, &_last_gpos_fail_time_us, &_gpos_probation_time_us, &status_flags.condition_global_position_valid, changed);
+	}
+	check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold_adj, local_position.timestamp, &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, changed);
 	check_posvel_validity(local_position.v_xy_valid, local_position.evh, _evh_threshold.get(), local_position.timestamp, &_last_lvel_fail_time_us, &_lvel_probation_time_us, &status_flags.condition_local_velocity_valid, changed);
 }
 
@@ -4066,6 +4090,9 @@ void Commander::poll_telemetry_status()
 				    (mission_result.instance_count > 0) && !mission_result.valid) {
 
 					mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
+					//set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, false, status); // TODO
+				} else {
+					//set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, true, status); // TODO
 				}
 			}
 
@@ -4084,6 +4111,17 @@ void Commander::poll_telemetry_status()
 
 			if (telemetry.heartbeat_time > 0 && (_telemetry[i].last_heartbeat < telemetry.heartbeat_time)) {
 				_telemetry[i].last_heartbeat = telemetry.heartbeat_time;
+			}
+		}
+
+		// for iridium telemetry use the iridiumsbd_status to update the heartbeat
+		if (_telemetry[i].high_latency) {
+			if (_iridiumsbd_status_sub.update()) {
+				const hrt_abstime isbd_timestamp = _iridiumsbd_status_sub.get().last_heartbeat;
+
+				if (isbd_timestamp > _telemetry[i].last_heartbeat) {
+					_telemetry[i].last_heartbeat = isbd_timestamp;
+				}
 			}
 		}
 	}
@@ -4179,21 +4217,6 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			status.high_latency_data_link_active = false;
 			*status_changed = true;
 			mavlink_log_critical(&mavlink_log_pub, "LOW LATENCY DATA LINKS REGAINED, DEACTIVATING HIGH LATENCY LINK");
-
-			vehicle_command_s vehicle_cmd;
-			vehicle_cmd.timestamp = hrt_absolute_time();
-			vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY;
-			vehicle_cmd.param1 = 0.0f;
-			vehicle_cmd.from_external = false;
-			vehicle_cmd.target_system = status.system_id;
-			vehicle_cmd.target_component = 0;
-
-			if (_vehicle_cmd_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, &vehicle_cmd);
-
-			} else {
-				_vehicle_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vehicle_cmd);
-			}
 		}
 
 	} else {
@@ -4202,26 +4225,11 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			status.high_latency_data_link_active = true;
 			*status_changed = true;
 
-			vehicle_command_s vehicle_cmd;
-			vehicle_cmd.timestamp = hrt_absolute_time();
-			vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY;
-			vehicle_cmd.param1 = 1.0f;
-			vehicle_cmd.from_external = false;
-			vehicle_cmd.target_system = status.system_id;
-			vehicle_cmd.target_component = 0;
-
 			// set heartbeat to current time for high latency so that the first message can be transmitted
 			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 				if (_telemetry[i].high_latency) {
 					_telemetry[i].last_heartbeat = hrt_absolute_time();
 				}
-			}
-
-			if (_vehicle_cmd_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, &vehicle_cmd);
-
-			} else {
-				_vehicle_cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vehicle_cmd);
 			}
 
 			if (!status.data_link_lost) {

@@ -120,17 +120,18 @@ endif
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-+@$(eval BUILD_DIR = $(SRC_DIR)/build/$@$(BUILD_DIR_SUFFIX))
++@$(eval PX4_CONFIG = $(1))
++@$(eval BUILD_DIR = $(SRC_DIR)/build/$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2) -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) -DCONFIG=$(1) || (rm -rf $(BUILD_DIR)); fi
-+@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(SRC_DIR) -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) -DCONFIG=$(PX4_CONFIG) || (rm -rf $(BUILD_DIR)); fi
++@$(PX4_MAKE) -C $(BUILD_DIR) $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
-COLOR_BLUE = \033[0;34m
+COLOR_BLUE = \033[0;94m
 NO_COLOR   = \033[m
 
 define colorecho
-+@echo "${COLOR_BLUE}${1} ${NO_COLOR}"
++@echo -e '${COLOR_BLUE}${1} ${NO_COLOR}'
 endef
 
 # Get a list of all config targets cmake/configs/*.cmake
@@ -144,13 +145,13 @@ NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGE
 
 # All targets.
 $(ALL_CONFIG_TARGETS):
-	$(call cmake-build,$@,$(SRC_DIR))
+	$(call cmake-build,$@)
 
 # Abbreviated config targets.
 
 # nuttx_ is left off by default; provide a rule to allow that.
 $(NUTTX_CONFIG_TARGETS):
-	$(call cmake-build,nuttx_$@,$(SRC_DIR))
+	$(call cmake-build,nuttx_$@)
 
 all_nuttx_targets: $(NUTTX_CONFIG_TARGETS)
 
@@ -231,7 +232,7 @@ quick_check: check_posix_sitl_default check_px4fmu-v4pro_default tests check_for
 
 check_%:
 	@echo
-	$(call colorecho,"Building" $(subst check_,,$@))
+	$(call colorecho,'Building' $(subst check_,,$@))
 	@$(MAKE) --no-print-directory $(subst check_,,$@)
 	@echo
 
@@ -269,12 +270,12 @@ px4_metadata: parameters_metadata airframe_metadata module_documentation
 .PHONY: check_format format
 
 check_format:
-	$(call colorecho,"Checking formatting with astyle")
+	$(call colorecho,'Checking formatting with astyle')
 	@$(SRC_DIR)/Tools/astyle/check_code_style_all.sh
 	@cd $(SRC_DIR) && git diff --check
 
 format:
-	$(call colorecho,"Formatting with astyle")
+	$(call colorecho,'Formatting with astyle')
 	@$(SRC_DIR)/Tools/astyle/check_code_style_all.sh --fix
 
 # Testing
@@ -288,11 +289,6 @@ tests:
 
 tests_coverage:
 	@$(MAKE) clean
-	@$(MAKE) --no-print-directory posix_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
-	@$(MAKE) --no-print-directory posix_sitl_default sitl_gazebo PX4_CMAKE_BUILD_TYPE=Coverage
-	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_missions.test
-	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test
-	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test
 	@$(MAKE) --no-print-directory posix_sitl_default test_coverage_genhtml PX4_CMAKE_BUILD_TYPE=Coverage
 	@echo "Open $(SRC_DIR)/build/posix_sitl_default/coverage-html/index.html to see coverage"
 

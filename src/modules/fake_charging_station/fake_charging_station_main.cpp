@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <drivers/drv_hrt.h>
-#include <lib/ecl/geo/geo.h>
+#include <matrix/math.hpp>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -48,7 +48,7 @@ int fake_charging_station_thread_main(int argc, char *argv[]) {
 	pos.alt = CHARGING_STATION_ALT;
 	pos.lat = CHARGING_STATION_LAT;
 	pos.lon = CHARGING_STATION_LON;
-	pos.yaw = _wrap_pi(CHARGING_STATION_HDG * M_DEG_TO_RAD_F);
+	pos.yaw = matrix::wrap_pi(CHARGING_STATION_HDG * M_DEG_TO_RAD_F);
 	pos.yaw_valid = true;
 
 	orb_advert_t state_pub = orb_advertise(ORB_ID(charging_station_state), &state);

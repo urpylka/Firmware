@@ -53,7 +53,6 @@
 #include <px4_workqueue.h>
 #include <perf/perf_counter.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/uORB.h>
 
 #define BATT_SMBUS_ADDR_MIN             0x00	///< lowest possible address
@@ -250,6 +249,7 @@ int serial_number();
 BATT_SMBUS::BATT_SMBUS(int bus, uint16_t batt_smbus_addr) :
 	I2C("batt_smbus", "/dev/batt_smbus0", bus, batt_smbus_addr, 100000),
 	_enabled(false),
+	_last_report{},
 	_batt_topic(nullptr),
 	_batt_orb_id(nullptr),
 	_start_time(0),

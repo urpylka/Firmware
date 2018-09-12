@@ -67,6 +67,9 @@
 #include <lib/ecl/geo/geo.h>
 #include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
+
+using matrix::wrap_pi;
 
 
 /**
@@ -158,7 +161,7 @@ private:
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
+	static int	task_main_trampoline(int argc, char *argv[]);
 };
 
 namespace bottle_drop
@@ -526,7 +529,7 @@ BottleDrop::task_main()
 				float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat,
 							   flight_vector_e.lon);
 
-				approach_error = _wrap_pi(ground_direction - approach_direction);
+				approach_error = wrap_pi(ground_direction - approach_direction);
 
 				if (counter % 90 == 0) {
 					mavlink_log_info(&_mavlink_log_pub, "drop distance %u, heading error %u", (unsigned)distance_real,
@@ -868,10 +871,11 @@ BottleDrop::answer_command(struct vehicle_command_s *cmd, unsigned result)
 	}
 }
 
-void
+int
 BottleDrop::task_main_trampoline(int argc, char *argv[])
 {
 	bottle_drop::g_bottle_drop->task_main();
+	return 0;
 }
 
 static void usage()

@@ -59,7 +59,6 @@
 #include <math.h>
 #include <unistd.h>
 
-#include <systemlib/airspeed.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
@@ -71,7 +70,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
 
 #include "airspeedsim.h"

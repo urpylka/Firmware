@@ -84,7 +84,7 @@ public:
 	void handle_mavlink_command_ack(const mavlink_command_ack_t &ack, uint8_t from_sysid, uint8_t from_compid);
 
 private:
-	MavlinkCommandSender();
+	MavlinkCommandSender() = default;
 
 	~MavlinkCommandSender();
 
@@ -111,7 +111,7 @@ private:
 		int8_t num_sent_per_channel[MAX_MAVLINK_CHANNEL] = {-1, -1, -1, -1};
 	} command_item_t;
 
-	TimestampedList<command_item_t> _commands;
+	TimestampedList<command_item_t> _commands{3};
 
 	bool _debug_enabled = false;
 	static const uint8_t RETRIES = 5;

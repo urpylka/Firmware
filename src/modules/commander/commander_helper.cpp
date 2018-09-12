@@ -128,6 +128,10 @@ int buzzer_init()
 	tune_durations[TONE_NOTIFY_NEGATIVE_TUNE] = 900000;
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
 	tune_durations[TONE_ARMING_WARNING_TUNE] = 3000000;
+	tune_durations[TONE_HOME_SET] = 800000;
+	tune_durations[TONE_BATTERY_WARNING_FAST_TUNE] = 800000;
+	tune_durations[TONE_BATTERY_WARNING_SLOW_TUNE] = 800000;
+	tune_durations[TONE_SINGLE_BEEP_TUNE] = 300000;
 	tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
 	return PX4_OK;
 }
@@ -283,6 +287,9 @@ int led_init()
 		PX4_WARN("LED: getHandle fail\n");
 		return PX4_ERROR;
 	}
+
+	/* the green LED is only available on FMUv5 */
+	(void)h_leds.ioctl(LED_ON, LED_GREEN);
 
 	/* the blue LED is only available on AeroCore but not FMUv2 */
 	(void)h_leds.ioctl(LED_ON, LED_BLUE);

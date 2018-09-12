@@ -53,6 +53,7 @@
 #include "DriverFramework.hpp"
 #include <termios.h>
 #include <sys/stat.h>
+#include <px4_tasks.h>
 
 namespace px4
 {
@@ -60,8 +61,6 @@ void init_once();
 }
 
 using namespace std;
-
-typedef int (*px4_main_t)(int argc, char *argv[]);
 
 #define CMD_BUFF_SIZE	100
 
@@ -84,11 +83,21 @@ extern "C" {
 		cout.flush();
 		_ExitFlag = true;
 	}
+
 	void _SigFpeHandler(int sig_num);
 	void _SigFpeHandler(int sig_num)
 	{
 		cout.flush();
 		cout << endl << "floating point exception" << endl;
+		PX4_BACKTRACE();
+		cout.flush();
+	}
+
+	void _SigSegvHandler(int sig_num);
+	void _SigSegvHandler(int sig_num)
+	{
+		cout.flush();
+		cout << endl << "segmentation fault" << endl;
 		PX4_BACKTRACE();
 		cout.flush();
 	}
@@ -300,19 +309,23 @@ int main(int argc, char **argv)
 	tcgetattr(0, &orig_term);
 	atexit(restore_term);
 
-	struct sigaction sig_int;
-	memset(&sig_int, 0, sizeof(struct sigaction));
+	// SIGINT
+	struct sigaction sig_int {};
 	sig_int.sa_handler = _SigIntHandler;
 	sig_int.sa_flags = 0;// not SA_RESTART!;
+	sigaction(SIGINT, &sig_int, nullptr);
 
-	struct sigaction sig_fpe;
-	memset(&sig_fpe, 0, sizeof(struct sigaction));
+	// SIGFPE
+	struct sigaction sig_fpe {};
 	sig_fpe.sa_handler = _SigFpeHandler;
 	sig_fpe.sa_flags = 0;// not SA_RESTART!;
-
-	sigaction(SIGINT, &sig_int, nullptr);
-	//sigaction(SIGTERM, &sig_int, NULL);
 	sigaction(SIGFPE, &sig_fpe, nullptr);
+
+	// SIGSEGV
+	struct sigaction sig_segv {};
+	sig_segv.sa_handler = _SigSegvHandler;
+	sig_segv.sa_flags = SA_RESTART | SA_SIGINFO;
+	sigaction(SIGSEGV, &sig_segv, nullptr);
 
 	set_cpu_scaling();
 
@@ -520,11 +533,15 @@ int main(int argc, char **argv)
 
 		while (!_ExitFlag) {
 
-			char c = getchar();
+			int c = getchar();
 			string add_string; // string to add at current cursor position
 			bool update_prompt = true;
 
 			switch (c) {
+			case EOF:
+				_ExitFlag = true;
+				break;
+
 			case 127:	// backslash
 				if (mystr.length() - cursor_position > 0) {
 					mystr.erase(mystr.length() - cursor_position - 1, 1);
@@ -621,7 +638,7 @@ int main(int argc, char **argv)
 
 			default:	// any other input
 				if (c > 3) {
-					add_string += c;
+					add_string += (char)c;
 
 				} else {
 					update_prompt = false;

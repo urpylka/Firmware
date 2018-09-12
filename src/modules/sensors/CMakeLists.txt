@@ -46,8 +46,10 @@ px4_add_module(
 		temperature_compensation.cpp
 
 	DEPENDS
-		drivers__device
+		airspeed
 		battery
+		conversion
+		drivers__device
 		git_ecl
 		ecl_validation
 	)
