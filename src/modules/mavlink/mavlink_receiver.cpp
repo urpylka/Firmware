@@ -161,7 +161,11 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mom_switch_state(0),
 	_p_bat_emergen_thr(param_find("BAT_EMERGEN_THR")),
 	_p_bat_crit_thr(param_find("BAT_CRIT_THR")),
-	_p_bat_low_thr(param_find("BAT_LOW_THR"))
+	_p_bat_low_thr(param_find("BAT_LOW_THR")),
+	_p_flow_rot(param_find("SENS_FLOW_ROT")),
+	_p_flow_maxr(param_find("SENS_FLOW_MAXR")),
+	_p_flow_minhgt(param_find("SENS_FLOW_MINHGT")),
+	_p_flow_maxhgt(param_find("SENS_FLOW_MAXHGT"))
 {
 	if (_mavlink->get_mode() != Mavlink::MAVLINK_MODE_IRIDIUM) {
 		_mission_manager = new MavlinkMissionManager(parent);
@@ -673,9 +677,16 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	mavlink_optical_flow_rad_t flow;
 	mavlink_msg_optical_flow_rad_decode(msg, &flow);
 
+	/* read flow sensor parameters */
 	int32_t flow_rot_int;
-	param_get(param_find("SENS_FLOW_ROT"), &flow_rot_int);
+	param_get(_p_flow_rot, &flow_rot_int);
 	const enum Rotation flow_rot = (Rotation)flow_rot_int;
+	float flow_max_rate;
+	param_get(_p_flow_maxr, &flow_max_rate);
+	float flow_min_hgt;
+	param_get(_p_flow_minhgt, &flow_min_hgt);
+	float flow_max_hgt;
+	param_get(_p_flow_maxhgt, &flow_max_hgt);
 
 	struct optical_flow_s f = {};
 
@@ -691,6 +702,9 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	f.quality = flow.quality;
 	f.sensor_id = flow.sensor_id;
 	f.gyro_temperature = flow.temperature;
+	f.max_flow_rate = flow_max_rate;
+	f.min_ground_distance = flow_min_hgt;
+	f.max_ground_distance = flow_max_hgt;
 
 	/* rotate measurements according to parameter */
 	float zeroval = 0.0f;
