@@ -44,6 +44,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <px4_module_params.h>
 #include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/vehicle_local_position.h>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -84,6 +85,8 @@ private:
 	void run_state_final_approach();
 	void run_state_search();
 	void run_state_fallback();
+
+	bool check_hacc_rad(vehicle_local_position_s *vehicle_local_position);
 
 	// attempt to switch to a different state. Returns true if state change was successful, false otherwise
 	bool switch_to_state_start();
@@ -129,7 +132,8 @@ private:
 		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_search_timeout,
 		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_max_searches,
 		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_acceleration_hor,
-		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_xy_vel_cruise
+		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_xy_vel_cruise,
+		(ParamBool<px4::params::PLD_STRICT>) _param_strict
 	)
 
 };

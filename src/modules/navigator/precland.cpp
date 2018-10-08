@@ -293,6 +293,31 @@ PrecLand::run_state_descend_above_target()
 		return;
 	}
 
+	// If a strict precland is requested (horizontal offset is importnant)
+	if (_param_strict.get())
+	{
+		// Get the current local position
+		vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
+
+		// If we are out of the horizontal acceptance radius
+		if (!check_hacc_rad(vehicle_local_position))
+		{
+			PX4_WARN("Out of the horizontal acceptance radius (strict precland)");
+
+			// Correct the vehicle position using the horizontal approach step
+			if (!switch_to_state_horizontal_approach())
+			{
+				// Landing target position has been lost
+				PX4_ERR("Can't switch to horizontal approach");
+
+				// No need to do anything else.
+				// Condition check will handle the case on the next iteration.
+			}
+
+			return;
+		}
+	}
+
 	// XXX need to transform to GPS coords because mc_pos_control only looks at that
 	double lat, lon;
 	map_projection_reproject(&_map_ref, _target_pose.x_abs, _target_pose.y_abs, &lat, &lon);
@@ -452,6 +477,13 @@ PrecLand::switch_to_state_done()
 	return true;
 }
 
+bool PrecLand::check_hacc_rad(vehicle_local_position_s *vehicle_local_position)
+{
+	// Check if the vehicle is inside the horizontal acceptance radius
+	return fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
+			    && fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_hacc_rad.get();			
+}
+
 bool PrecLand::check_state_conditions(PrecLandState state)
 {
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
@@ -464,11 +496,9 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 		// if we're already in this state, only want to make it invalid if we reached the target but can't see it anymore
 		if (_state == PrecLandState::HorizontalApproach) {
-			if (fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
-			    && fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_hacc_rad.get()) {
+			if (check_hacc_rad(vehicle_local_position)) {
 				// we've reached the position where we last saw the target. If we don't see it now, we need to do something
 				return _target_pose_valid && _target_pose.abs_pos_valid;
-
 			} else {
 				// We've seen the target sometime during horizontal approach.
 				// Even if we don't see it as we're moving towards it, continue approaching last known location
@@ -481,7 +511,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 	case PrecLandState::DescendAboveTarget:
 
-		// if we're already in this state, only leave it if target becomes unusable, don't care about horizontall offset to target
+		// If we're already in this state, only leave it if target becomes unusable, don't care about horizontal offset to target
 		if (_state == PrecLandState::DescendAboveTarget) {
 			// if we're close to the ground, we're more critical of target timeouts so we quickly go into descend
 			if (check_state_conditions(PrecLandState::FinalApproach)) {
@@ -494,8 +524,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		} else {
 			// if not already in this state, need to be above target to enter it
 			return _target_pose_updated && _target_pose.abs_pos_valid
-			       && fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
-			       && fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_hacc_rad.get();
+			       && check_hacc_rad(vehicle_local_position);
 		}
 
 	case PrecLandState::FinalApproach:

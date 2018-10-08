@@ -119,3 +119,13 @@ PARAM_DEFINE_FLOAT(PLD_SRCH_TOUT, 10.0f);
  * @group Precision Land
  */
 PARAM_DEFINE_INT32(PLD_MAX_SRCH, 3);
+
+/**
+ * Strict precision land
+ *
+ * Keep the vehicle inside the horizontal acceptance radius while descending above the target.
+ *
+ * @boolean
+ * @group Precision Land
+ */
+PARAM_DEFINE_INT32(PLD_STRICT, 0);
