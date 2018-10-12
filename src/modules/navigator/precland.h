@@ -124,6 +124,9 @@ private:
 
 	PrecLandMode _mode{PrecLandMode::Opportunistic};
 
+	float _strict_funnel_k; /** A linear funnel part slope (0 to use cylinder) */
+	float _strict_funnel_r_o;  /** A linear funnel part offset */
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::PLD_BTOUT>) _param_timeout,
 		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_hacc_rad,
@@ -133,7 +136,8 @@ private:
 		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_max_searches,
 		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_acceleration_hor,
 		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_xy_vel_cruise,
-		(ParamBool<px4::params::PLD_STRICT>) _param_strict
+		(ParamBool<px4::params::PLD_STRICT>) _param_strict,
+		(ParamFloat<px4::params::PLD_FUNNEL_TR>) _param_funnel_top_rad,
+		(ParamFloat<px4::params::PLD_FUNNEL_LEA>) _param_funnel_le_alt
 	)
-
 };

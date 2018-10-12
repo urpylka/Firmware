@@ -123,9 +123,39 @@ PARAM_DEFINE_INT32(PLD_MAX_SRCH, 3);
 /**
  * Strict precision land
  *
- * Keep the vehicle inside the horizontal acceptance radius while descending above the target.
+ * Keep the vehicle inside a cylinder or a funnel while descending above the target.
  *
  * @boolean
  * @group Precision Land
  */
 PARAM_DEFINE_INT32(PLD_STRICT, 0);
+
+/**
+ * Strict precision land funnel top radius
+ *
+ * Funnel top radius at the search altitude. Set to 0 to switch a precision land to the cylinder
+ * precision land mode.
+ *
+ * @unit m
+ * @min 0.0
+ * @max 10
+ * @decimal 2
+ * @increment 0.1
+ * @group Precision Land
+ */
+PARAM_DEFINE_FLOAT(PLD_FUNNEL_TR, 0);
+
+/**
+ * Strict precision land funnel linear part end altitude
+ *
+ * Funnel linear part ends at this altitude and the horizontal acceptance radius cylinder starts.
+ * It's better to keep this parameter slightly greater than the final approach altitude.
+ *
+ * @unit m
+ * @min 0.0
+ * @max 10
+ * @decimal 2
+ * @increment 0.1
+ * @group Precision Land
+ */
+PARAM_DEFINE_FLOAT(PLD_FUNNEL_LEA, 0);
