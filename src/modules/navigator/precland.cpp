@@ -57,8 +57,6 @@
 
 #define SEC2USEC 1000000.0f
 
-#define STATE_TIMEOUT 10000000 // [us] Maximum time to spend in any state
-
 PrecLand::PrecLand(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
@@ -294,7 +292,7 @@ PrecLand::run_state_horizontal_approach()
 
 	}
 
-	if (hrt_absolute_time() - _state_start_time > STATE_TIMEOUT) {
+	if (hrt_absolute_time() - _state_start_time > _param_state_timeout.get()*SEC2USEC) {
 		PX4_ERR("Precision landing took too long during horizontal approach phase.");
 
 		if (switch_to_state_fallback()) {
@@ -346,8 +344,11 @@ PrecLand::run_state_descend_above_target()
 		return;
 	}
 
-	// If a strict precland is requested (horizontal offset is importnant)
-	if (_param_strict.get())
+	// If a strict precland is requested (horizontal offset is important)
+	// HINT: This branch may try to switch to horizontal approach while target is not updated.
+	// It will cause multiple errors output after unsuccessfull switch_to_state_horizontal_approach
+	// calls. To avoid such behaviour _target_pose_updated flag check has been added.
+	if (_param_strict.get() && _target_pose_updated)
 	{
 		// Get the current local position
 		vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();

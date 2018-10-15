@@ -138,6 +138,7 @@ private:
 		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_xy_vel_cruise,
 		(ParamBool<px4::params::PLD_STRICT>) _param_strict,
 		(ParamFloat<px4::params::PLD_FUNNEL_TR>) _param_funnel_top_rad,
-		(ParamFloat<px4::params::PLD_FUNNEL_LEA>) _param_funnel_le_alt
+		(ParamFloat<px4::params::PLD_FUNNEL_LEA>) _param_funnel_le_alt,
+		(ParamFloat<px4::params::PLD_STATE_TIME>) _param_state_timeout
 	)
 };

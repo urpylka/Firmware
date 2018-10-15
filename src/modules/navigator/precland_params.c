@@ -159,3 +159,17 @@ PARAM_DEFINE_FLOAT(PLD_FUNNEL_TR, 0);
  * @group Precision Land
  */
 PARAM_DEFINE_FLOAT(PLD_FUNNEL_LEA, 0);
+
+/**
+ * Strict precision land timeout in any state.
+ *
+ * A maximum time to spend in any state before precland switches to the fallback state.
+ *
+ * @unit s
+ * @min 1.0
+ * @max 600
+ * @decimal 2
+ * @increment 0.5
+ * @group Precision Land
+ */
+PARAM_DEFINE_FLOAT(PLD_STATE_TIME, 10);
