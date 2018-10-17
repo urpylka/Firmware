@@ -308,6 +308,10 @@ Mission::on_active()
 				if (charging_station_position.id == (int)_mission_item.params[2]) {
 					sp->current.lat = charging_station_position.lat;
 					sp->current.lon = charging_station_position.lon;
+
+					if (charging_station_position.yaw_valid)
+						sp->current.yaw = charging_station_position.yaw;
+					
 					sp->current.valid = true;
 				}
 
@@ -324,6 +328,14 @@ Mission::on_active()
 				} else {
 					sp->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 				}
+
+				_navigator->set_position_setpoint_triplet_updated();
+			}
+			// Precision landing and the charging station yaw is valid
+			else if (charging_station_position.yaw_valid)
+			{
+				// Replace landing target yaw with a charging station yaw
+				sp->current.yaw = charging_station_position.yaw;
 
 				_navigator->set_position_setpoint_triplet_updated();
 			}
