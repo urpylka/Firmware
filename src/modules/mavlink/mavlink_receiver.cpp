@@ -2489,7 +2489,7 @@ void MavlinkReceiver::handle_message_global_position_int(mavlink_message_t *msg)
 	topic_pos.yaw_valid = pos.hdg != UINT16_MAX;
 
 	if (topic_pos.yaw_valid) {
-		topic_pos.yaw = matrix::wrap_pi(pos.hdg * 1e2f * M_DEG_TO_RAD_F);
+		topic_pos.yaw = matrix::wrap_pi(pos.hdg / 1e2f * M_DEG_TO_RAD_F);
 	}
 
 	int inst = 0;
