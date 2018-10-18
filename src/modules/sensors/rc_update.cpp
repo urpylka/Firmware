@@ -48,6 +48,9 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/input_rc.h>
 
+#include <systemlib/mavlink_log.h>
+orb_advert_t     mavlink_pub_rc_up; /**< the uORB advert to send messages over mavlink */
+
 using namespace sensors;
 
 RCUpdate::RCUpdate(const Parameters &parameters)
@@ -249,6 +252,72 @@ RCUpdate::set_params_from_rc(const ParameterHandles &parameter_handles)
 	}
 }
 
+void RCUpdate::process_camera_trigger_rc_inputs(input_rc_s rc_input)
+{
+        _p_rc_camtrig_photo_channel = param_find("TRIG_PHOTO_CHAN");
+        param_get(_p_rc_camtrig_photo_channel, &_rc_camtrig_photo_channel);
+        _p_rc_camtrig_photo_pwm = param_find("TRIG_PHOTO_PWM");
+        param_get(_p_rc_camtrig_photo_pwm, &_rc_camtrig_photo_pwm);
+        _p_rc_camtrig_photo_pwm_neutral = param_find("TRIG_PHOTO_NTRL");
+        param_get(_p_rc_camtrig_photo_pwm_neutral, &_rc_camtrig_photo_pwm_neutral);
+
+        int photo_pwm_value = rc_input.values[_rc_camtrig_photo_channel - 1];
+
+        if (photo_pwm_value > _rc_camtrig_photo_pwm - _pwm_spreading 
+                && photo_pwm_value < _rc_camtrig_photo_pwm + _pwm_spreading
+                && not _camtrig_shot_made_flag) {
+            mavlink_log_info(&mavlink_pub_rc_up, "shot!");
+            _camtrig_shot_made_flag = true;
+            vehicle_command_s vcmd = {};
+            vcmd.timestamp = hrt_absolute_time();
+            vcmd.param5 = 1.0;
+            vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
+
+            orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+        }
+
+        if (photo_pwm_value > _rc_camtrig_photo_pwm_neutral - _pwm_spreading 
+                && photo_pwm_value < _rc_camtrig_photo_pwm_neutral + _pwm_spreading) 
+        {
+            _camtrig_shot_made_flag = false;
+        }
+        
+        _p_rc_camtrig_video_channel = param_find("TRIG_VIDEO_CHAN");
+        param_get(_p_rc_camtrig_video_channel, &_rc_camtrig_video_channel);
+        _p_rc_camtrig_video_pwm = param_find("TRIG_VIDEO_PWM");
+        param_get(_p_rc_camtrig_video_pwm, &_rc_camtrig_video_pwm);
+        _p_rc_camtrig_video_pwm_neutral = param_find("TRIG_VIDEO_NTRL");
+        param_get(_p_rc_camtrig_video_pwm_neutral, &_rc_camtrig_video_pwm_neutral);
+        
+        int video_pwm_value = rc_input.values[_rc_camtrig_video_channel - 1];
+        
+        if (video_pwm_value > _rc_camtrig_video_pwm - _pwm_spreading 
+                && video_pwm_value < _rc_camtrig_video_pwm + _pwm_spreading
+                && not _camtrig_video_started_flag) {
+            mavlink_log_info(&mavlink_pub_rc_up, "start video!");
+            _camtrig_video_started_flag = true;
+            vehicle_command_s vcmd = {};
+            vcmd.timestamp = hrt_absolute_time();
+            vcmd.param2 = 1.0;
+            vcmd.command = 2500;//vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE;
+
+            orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+        }
+
+        if (video_pwm_value > _rc_camtrig_video_pwm_neutral - _pwm_spreading 
+                && photo_pwm_value < _rc_camtrig_video_pwm_neutral + _pwm_spreading
+                && _camtrig_video_started_flag) 
+        {
+            mavlink_log_info(&mavlink_pub_rc_up, "stop video!");
+            _camtrig_video_started_flag = false;
+            vehicle_command_s vcmd = {};
+            vcmd.timestamp = hrt_absolute_time();
+            vcmd.command = 2501;//vehicle_command_s::VEHICLE_CMD_VIDEO_STOP_CAPTURE;
+            
+            orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+        }
+}
+
 void
 RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 {
@@ -260,8 +329,10 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 		struct input_rc_s rc_input;
 
 		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
-
-		/* detect RC signal loss */
+                
+                process_camera_trigger_rc_inputs(rc_input);
+                
+                /* detect RC signal loss */
 		bool signal_lost;
 
 		/* check flags and require at least four channels to consider the signal valid */

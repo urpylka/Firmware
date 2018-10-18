@@ -2224,3 +2224,57 @@ PARAM_DEFINE_FLOAT(RC_FLT_SMP_RATE, 50.0f);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC_FLT_CUTOFF, 10.0f);
+
+/**
+ * RC input channel to take photo once
+ *
+ * @min 1
+ * @max 18
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_PHOTO_CHAN, 5);
+
+/**
+ * PWM level to take photo once
+ *
+ * @min 900
+ * @max 2000
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_PHOTO_PWM, 2000);
+
+/**
+ * PWM level to "reload" photo trigger
+ *
+ * @min 900
+ * @max 2000
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_PHOTO_NTRL, 1500);
+
+/**
+ * RC input channel to start video recording
+ *
+ * @min 1
+ * @max 18
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_VIDEO_CHAN, 5);
+
+/**
+ * PWM level to take photo once
+ *
+ * @min 900
+ * @max 2000
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_VIDEO_PWM, 1000);
+
+/**
+ * PWM level to stop video recording
+ *
+ * @min 900
+ * @max 2000
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_VIDEO_NTRL, 1500);

@@ -45,6 +45,7 @@
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/vehicle_command.h>
 
 namespace sensors
 {
@@ -109,10 +110,29 @@ private:
 	 * @param
 	 */
 	void set_params_from_rc(const ParameterHandles &parameter_handles);
+        
+        void process_camera_trigger_rc_inputs(input_rc_s rc_input);
 
 
 	int		_rc_sub = -1;			/**< raw rc channels data subscription */
 	int		_rc_parameter_map_sub = -1;		/**< rc parameter map subscription */
+        
+        bool            _camtrig_shot_made_flag = false;
+        param_t         _p_rc_camtrig_photo_channel;
+        int             _rc_camtrig_photo_channel;
+        param_t         _p_rc_camtrig_photo_pwm;
+        int             _rc_camtrig_photo_pwm;
+        param_t         _p_rc_camtrig_photo_pwm_neutral;
+        int             _rc_camtrig_photo_pwm_neutral;
+        
+        bool            _camtrig_video_started_flag = false;
+        param_t         _p_rc_camtrig_video_channel;
+        int             _rc_camtrig_video_channel;
+        param_t         _p_rc_camtrig_video_pwm;
+        int             _rc_camtrig_video_pwm;
+        param_t         _p_rc_camtrig_video_pwm_neutral;
+        int             _rc_camtrig_video_pwm_neutral;
+        int             _pwm_spreading = 100;
 
 	orb_advert_t	_rc_pub = nullptr;		/**< raw r/c control topic */
 	orb_advert_t	_manual_control_pub = nullptr;	/**< manual control signal topic */
