@@ -353,8 +353,9 @@ PrecLand::run_state_descend_above_target()
 		// Get the current local position
 		vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
-		// If we are out of the horizontal acceptance radius
-		if (!check_hacc_rad(vehicle_local_position))
+		// If we are out of the horizontal acceptance radius and over the final approach altitude
+		if (!check_hacc_rad(vehicle_local_position) &&
+			!check_state_conditions(PrecLandState::FinalApproach))
 		{
 			PX4_WARN("Out of the horizontal acceptance radius (strict precland)");
 
