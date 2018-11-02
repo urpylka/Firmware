@@ -331,10 +331,10 @@ Mission::on_active()
 
 				_navigator->set_position_setpoint_triplet_updated();
 			}
-			// Precision landing and the charging station yaw is valid
-			else if (charging_station_position.yaw_valid)
-			{
-				// Replace landing target yaw with a charging station yaw
+			// precision landing, it's a charging station from the waypoint and the charging station yaw is valid
+			else if ((charging_station_position.id == (int)_mission_item.params[2]) &&
+					(charging_station_position.yaw_valid)) {
+				// replace landing target yaw with a charging station yaw
 				sp->current.yaw = charging_station_position.yaw;
 
 				_navigator->set_position_setpoint_triplet_updated();
