@@ -2226,13 +2226,13 @@ PARAM_DEFINE_FLOAT(RC_FLT_SMP_RATE, 50.0f);
 PARAM_DEFINE_FLOAT(RC_FLT_CUTOFF, 10.0f);
 
 /**
- * RC input channel to take photo once
+ * RC input channel to take photo once. If 0 - photo capturing disabled.
  *
- * @min 1
+ * @min 0
  * @max 18
  * @group Camera trigger
  */
-PARAM_DEFINE_INT32(TRIG_PHOTO_CHAN, 5);
+PARAM_DEFINE_INT32(TRIG_PHOTO_CHAN, 0);
 
 /**
  * PWM level to take photo once
@@ -2253,13 +2253,13 @@ PARAM_DEFINE_INT32(TRIG_PHOTO_PWM, 2000);
 PARAM_DEFINE_INT32(TRIG_PHOTO_NTRL, 1500);
 
 /**
- * RC input channel to start video recording
+ * RC input channel to start video recording. If 0 - video recording disabled.
  *
- * @min 1
+ * @min 0
  * @max 18
  * @group Camera trigger
  */
-PARAM_DEFINE_INT32(TRIG_VIDEO_CHAN, 5);
+PARAM_DEFINE_INT32(TRIG_VIDEO_CHAN, 0);
 
 /**
  * PWM level to take photo once
