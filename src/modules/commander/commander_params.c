@@ -280,8 +280,8 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * A non-zero, positive value specifies the time-out period in seconds after which the vehicle will be
  * automatically disarmed in case a landing situation has been detected during this period.
  *
- * The vehicle will also auto-disarm right after arming if it has not even flown, however the time
- * will be longer by a factor of 5.
+ * For configuring auto disarm timeout when the vehicle hasn't taken off, see COM_DISARM_TKO
+ * parameter.
  *
  * A value of zero means that automatic disarming is disabled.
  *
@@ -293,6 +293,20 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
+
+/**
+ * Time-out for auto disarm before takeoff
+ *
+ * A value of zero means that automatic disarming is disabled.
+ *
+ * @group Commander
+ * @min 0
+ * @max 60
+ * @unit s
+ * @decimal 0
+ * @increment 1
+ */
+PARAM_DEFINE_INT32(COM_DISARM_TKO, 0);
 
 /**
  * Allow arming without GPS

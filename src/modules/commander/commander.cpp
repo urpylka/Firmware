@@ -1186,6 +1186,7 @@ Commander::run()
 	param_t _param_min_stick_change = param_find("COM_RC_STICK_OV");
 	param_t _param_geofence_action = param_find("GF_ACTION");
 	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
+	param_t _param_disarm_before_takeoff = param_find("COM_DISARM_TKO");
 	param_t _param_low_bat_act = param_find("COM_LOW_BAT_ACT");
 	param_t _param_offboard_loss_timeout = param_find("COM_OF_LOSS_T");
 	param_t _param_arm_without_gps = param_find("COM_ARM_WO_GPS");
@@ -1450,6 +1451,7 @@ Commander::run()
 	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
 
 	int32_t disarm_when_landed = 0;
+	int32_t disarm_before_takeoff = 0;
 	int32_t low_bat_action = 0;
 
 	/* check which state machines for changes, clear "changed" flag */
@@ -1549,6 +1551,7 @@ Commander::run()
 			param_get(_param_ef_time_thres, &ef_time_thres);
 			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
+			param_get(_param_disarm_before_takeoff, &disarm_before_takeoff);
 			param_get(_param_flight_uuid, &flight_uuid);
 
 			// If we update parameters the first time
@@ -1878,15 +1881,17 @@ Commander::run()
 
 		/* Update hysteresis time. Use a time of factor 5 longer if we have not taken off yet. */
 		hrt_abstime timeout_time = disarm_when_landed * 1_s;
+		bool auto_disarm = disarm_when_landed > 0;
 
 		if (!have_taken_off_since_arming) {
-			timeout_time *= 5;
+			timeout_time = disarm_before_takeoff * 1_s;
+			auto_disarm = disarm_before_takeoff > 0;
 		}
 
 		auto_disarm_hysteresis.set_hysteresis_time_from(false, timeout_time);
 
 		// Check for auto-disarm
-		if (armed.armed && land_detector.landed && disarm_when_landed > 0) {
+		if (armed.armed && land_detector.landed && auto_disarm) {
 			auto_disarm_hysteresis.set_state_and_update(true);
 
 		} else {
