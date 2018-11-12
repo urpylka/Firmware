@@ -132,3 +132,29 @@ PARAM_DEFINE_FLOAT(LTEST_SCALE_X, 1.0f);
  * @group Landing target Estimator
  */
 PARAM_DEFINE_FLOAT(LTEST_SCALE_Y, 1.0f);
+
+/**
+ * Landing target sensor offset by X
+ *
+ * Landing target x measurements are summed up with this value
+ *
+ * @min 0
+ * @max 2
+ * @decimal 3
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_OFFSET_X, 0.0f);
+
+/**
+ * Landing target sensor offset by Y
+ *
+ * Landing target y measurements are summed up with this value
+ *
+ * @min 0
+ * @max 2
+ * @decimal 3
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_OFFSET_Y, 0.0f);

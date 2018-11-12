@@ -71,6 +71,8 @@ LandingTargetEstimator::LandingTargetEstimator() :
 	_paramHandle.mode = param_find("LTEST_MODE");
 	_paramHandle.scale_x = param_find("LTEST_SCALE_X");
 	_paramHandle.scale_y = param_find("LTEST_SCALE_Y");
+	_paramHandle.offset_x = param_find("LTEST_OFFSET_X");
+	_paramHandle.offset_y = param_find("LTEST_OFFSET_Y");
 
 	// Initialize uORB topics.
 	_initialize_topics();
@@ -154,9 +156,10 @@ void LandingTargetEstimator::update()
 
 	float dist = _vehicleLocalPosition.dist_bottom;
 
-	// scale the ray s.t. the z component has length of dist
-	_rel_pos(0) = sensor_ray(0) / sensor_ray(2) * dist;
-	_rel_pos(1) = sensor_ray(1) / sensor_ray(2) * dist;
+	// scale the ray s.t. the z component has length of dist, subtract offsets
+	_rel_pos(0) = sensor_ray(0) / sensor_ray(2) * dist - _params.offset_y;
+	_rel_pos(1) = sensor_ray(1) / sensor_ray(2) * dist - _params.offset_x;
+	// PX4_INFO("X: %f, Y: %f", (double)_rel_pos(1), (double)_rel_pos(0));
 
 	if (!_estimator_initialized) {
 		PX4_INFO("Init");
@@ -320,6 +323,8 @@ void LandingTargetEstimator::_update_params()
 	_params.mode = (TargetMode)mode;
 	param_get(_paramHandle.scale_x, &_params.scale_x);
 	param_get(_paramHandle.scale_y, &_params.scale_y);
+	param_get(_paramHandle.offset_x, &_params.offset_x);
+	param_get(_paramHandle.offset_y, &_params.offset_y);
 }
 
 
