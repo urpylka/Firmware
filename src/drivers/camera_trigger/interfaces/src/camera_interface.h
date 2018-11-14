@@ -25,9 +25,15 @@ public:
 
 	/**
 	 * trigger the camera
-	 * @param enable
+	 * @param trigger_on_true
 	 */
 	virtual void trigger(bool trigger_on_true) {}
+        
+        /**
+	 * trigger the on or off
+	 * @param trigger_on_true
+	 */
+	virtual void trigger_video(bool trigger_on_true) {}
 
 	/**
 	 * send command to turn the camera on/off

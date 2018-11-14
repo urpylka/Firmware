@@ -21,11 +21,13 @@ public:
 	virtual ~CameraInterfacePWM();
 
 	void trigger(bool trigger_on_true);
+        void trigger_video(bool trigger_on_true);
 
 	void info();
 
 private:
 
+        void send_pwm(int pwm_level);
 	void setup();
 
 };

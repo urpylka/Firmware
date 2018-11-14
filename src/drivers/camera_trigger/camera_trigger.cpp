@@ -169,6 +169,7 @@ private:
 	bool			_one_shot;
 	bool			_test_shot;
 	bool 			_turning_on;
+        bool                    _video_started;
 	matrix::Vector2f	_last_shoot_position;
 	bool			_valid_position;
 
@@ -241,9 +242,10 @@ CameraTrigger::CameraTrigger() :
 	_trigger_seq(0),
 	_trigger_enabled(false),
 	_trigger_paused(false),
-	_one_shot(false),
+        _one_shot(false),
 	_test_shot(false),
 	_turning_on(false),
+        _video_started(false),
 	_last_shoot_position(0.0f, 0.0f),
 	_valid_position(false),
 	_command_sub(-1),
@@ -627,7 +629,23 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
-		}
+		} else if (cmd.command == 2500) {
+                        //vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE
+                        if (!trig->_video_started){
+                            trig->_camera_interface->trigger_video(true);
+                            trig->_video_started = true;
+                        }
+                        cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+                        
+                } else if (cmd.command == 2501) {
+                        //vehicle_command_s::VEHICLE_CMD_VIDEO_STOP_CAPTURE
+                        if (trig->_video_started){
+                            trig->_camera_interface->trigger_video(false);
+                            trig->_video_started = false;
+                        }
+                        cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+                        
+                }
 
 	}
 
