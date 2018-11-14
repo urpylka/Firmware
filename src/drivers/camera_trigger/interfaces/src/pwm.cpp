@@ -8,6 +8,7 @@
 
 // TODO : make these parameters later
 #define PWM_CAMERA_SHOOT 1900
+#define PWM_CAMERA_VIDEO 1000
 #define PWM_CAMERA_NEUTRAL 1500
 
 CameraInterfacePWM::CameraInterfacePWM():
@@ -46,14 +47,24 @@ void CameraInterfacePWM::setup()
 
 }
 
-void CameraInterfacePWM::trigger(bool trigger_on_true)
+void CameraInterfacePWM::send_pwm(int pwm_level)
 {
-	for (unsigned i = 0; i < arraySize(_pins); i++) {
+        for (unsigned i = 0; i < arraySize(_pins); i++) {
 		if (_pins[i] >= 0) {
-			// Set all valid pins to shoot or neutral levels
-			up_pwm_trigger_set(_pins[i], math::constrain(trigger_on_true ? PWM_CAMERA_SHOOT : PWM_CAMERA_NEUTRAL, 1000, 2000));
+			// Set all valid pins to pwm_level
+			up_pwm_trigger_set(_pins[i], math::constrain(pwm_level, 1000, 2000));
 		}
 	}
+}
+
+void CameraInterfacePWM::trigger(bool trigger_on_true)
+{
+        send_pwm(trigger_on_true ? PWM_CAMERA_SHOOT : PWM_CAMERA_NEUTRAL);
+}
+
+void CameraInterfacePWM::trigger_video(bool trigger_on_true)
+{
+	send_pwm(trigger_on_true ? PWM_CAMERA_VIDEO : PWM_CAMERA_NEUTRAL);
 }
 
 void CameraInterfacePWM::info()
