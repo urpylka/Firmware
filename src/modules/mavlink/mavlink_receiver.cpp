@@ -594,9 +594,31 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_CONTROL_VIDEO) {
 		mavlink_log_info(&_mavlink_log_pub, "MAV_CMD_DO_CONTROL_VIDEO command received");
+		vehicle_command_s vcmd = {};
+		vcmd.timestamp = hrt_absolute_time();
+		vcmd.command = MAV_CMD_DO_CONTROL_VIDEO;
+		vcmd.param1 = vehicle_command.param1;
+		vcmd.param2 = vehicle_command.param2;
+		vcmd.param3 = vehicle_command.param3;
+		vcmd.param4 = vehicle_command.param4;
+		vcmd.param5 = vehicle_command.param5;
+		vcmd.param6 = vehicle_command.param6;
+		vcmd.param7 = vehicle_command.param7;
+		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_DIGICAM_CONFIGURE) {
 		mavlink_log_info(&_mavlink_log_pub, "MAV_CMD_DO_DIGICAM_CONFIGURE command received");
+		vehicle_command_s vcmd = {};
+		vcmd.timestamp = hrt_absolute_time();
+		vcmd.command = MAV_CMD_DO_DIGICAM_CONFIGURE;
+		vcmd.param1 = vehicle_command.param1;
+		vcmd.param2 = vehicle_command.param2;
+		vcmd.param3 = vehicle_command.param3;
+		vcmd.param4 = vehicle_command.param4;
+		vcmd.param5 = vehicle_command.param5;
+		vcmd.param6 = vehicle_command.param6;
+		vcmd.param7 = vehicle_command.param7;
+		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
 		send_flight_information();
