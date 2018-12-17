@@ -83,6 +83,8 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.freefall_trigger_time = param_find("LNDMC_FFALL_TTRI");
 	_paramHandle.altitude_max = param_find("LNDMC_ALT_MAX");
 	_paramHandle.landSpeed = param_find("MPC_LAND_SPEED");
+	_paramHandle.landPhaseArmTime = param_find("LNDMC_LPAT");
+	_paramHandle.landPhaseArmZCoef = param_find("LNDMC_LPAZC");
 
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
 	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME_US);
@@ -129,6 +131,8 @@ void MulticopterLandDetector::_update_params()
 	_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _params.freefall_trigger_time));
 	param_get(_paramHandle.altitude_max, &_params.altitude_max);
 	param_get(_paramHandle.landSpeed, &_params.landSpeed);
+	param_get(_paramHandle.landPhaseArmTime, &_params.landPhaseArmTime);
+	param_get(_paramHandle.landPhaseArmZCoef, &_params.landPhaseArmZCoef);
 }
 
 
@@ -167,11 +171,10 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// an accurate in-air indication.
 	bool verticalMovement;
 
-	if (hrt_elapsed_time(&_landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
-
+	if (hrt_elapsed_time(&_landed_time) < _params.landPhaseArmTime * 1000000.0f) {
 		// Widen acceptance thresholds for landed state right after arming
 		// so that motor spool-up and other effects do not trigger false negatives.
-		verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate  * 2.5f;
+		verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate * _params.landPhaseArmZCoef;
 
 	} else {
 

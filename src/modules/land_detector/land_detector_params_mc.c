@@ -129,3 +129,31 @@ PARAM_DEFINE_FLOAT(LNDMC_FFALL_TTRI, 0.3);
  *
  */
 PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, -1.0f);
+
+/**
+ * Multicopter land phase time after arming
+ *
+ * Time in seconds (decimal) that wides acceptance thresholds for landed state right after arming
+ *
+ * @unit s
+ * @min 0.1
+ * @max 30
+ * @decimal 2
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_LPAT, 2);
+
+/**
+ * Multicopter land phase Z accel coef right after arming 
+ *
+ * Widen acceptance thresholds for landed state right after arming so that motor spool-up and
+ * other effects do not trigger false negatives
+ *
+ * @min 1
+ * @max 20
+ * @decimal 2
+ *
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDMC_LPAZC, 2.5f);
