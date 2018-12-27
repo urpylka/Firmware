@@ -29,10 +29,12 @@ else
 	fi
 
 	# External SPI
-	ms5611 -S start
+	# ms5611 -S start
 
 	# Internal SPI (auto detect ms5611 or ms5607)
-	ms5611 -T 0 -s start
+	# ms5611 -T 0 -s start
+
+	lps22hb start
 
 	# Blacksheep telemetry
 	bst start
