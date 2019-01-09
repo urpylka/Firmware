@@ -45,6 +45,10 @@ ChargingStation::on_active()
 			if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 				// open charging station when the vehicle is armed
 				to_send = true;
+				if (!in_flight()) {
+					// don't take off if we're in charging station
+					idle();
+				}
 				PX4_INFO("Open charging station with id %d", _id);
 			}
 		} else if (_action == ACTION_CLOSE) {
@@ -141,4 +145,17 @@ bool
 ChargingStation::in_flight()
 {
 	return !_navigator->get_land_detected()->landed;
+}
+
+void
+ChargingStation::idle()
+{
+	position_setpoint_triplet_s *sp;
+	sp = _navigator->get_position_setpoint_triplet();
+	sp->current.valid = true;
+	sp->current.lat = _navigator->get_global_position()->lat;
+	sp->current.lon = _navigator->get_global_position()->lon;
+	sp->current.alt = _navigator->get_global_position()->alt;
+	// sp->current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
+	_navigator->set_position_setpoint_triplet_updated();
 }
