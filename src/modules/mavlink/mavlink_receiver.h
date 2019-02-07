@@ -61,6 +61,8 @@
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/obstacle_distance.h>
+#include <uORB/topics/charging_station_state.h>
+#include <uORB/topics/external_vehicle_position.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/ping.h>
@@ -162,7 +164,11 @@ private:
 	void handle_message_named_value_float(mavlink_message_t *msg);
 	void handle_message_debug(mavlink_message_t *msg);
 	void handle_message_debug_vect(mavlink_message_t *msg);
+<<<<<<< HEAD
 	void handle_message_debug_float_array(mavlink_message_t *msg);
+=======
+	void handle_message_global_position_int(mavlink_message_t *msg);
+>>>>>>> origin/strict_precland
 
 	void *receive_thread(void *arg);
 
@@ -251,6 +257,8 @@ private:
 	static const int _gps_inject_data_queue_size = 6;
 	orb_advert_t _gps_inject_data_pub;
 	orb_advert_t _command_ack_pub;
+	orb_advert_t _charging_station_state_pub;
+	orb_advert_t _external_vehicle_position_pub;
 	int _control_mode_sub;
 	int _actuator_armed_sub;
 	int _vehicle_attitude_sub;

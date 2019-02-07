@@ -162,6 +162,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_debug_array_pub(nullptr),
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
+	_charging_station_state_pub(nullptr),
+	_external_vehicle_position_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_actuator_armed_sub(orb_subscribe(ORB_ID(actuator_armed))),
 	_vehicle_attitude_sub(orb_subscribe(ORB_ID(vehicle_attitude))),
@@ -346,6 +348,9 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY:
 		handle_message_debug_float_array(msg);
+		
+	case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:
+		handle_message_global_position_int(msg);
 		break;
 
 	default:
@@ -681,15 +686,18 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 
 	MavlinkCommandSender::instance().handle_mavlink_command_ack(ack, msg->sysid, msg->compid);
 
-	vehicle_command_ack_s command_ack = {};
-	command_ack.timestamp = hrt_absolute_time();
-	command_ack.result_param2 = ack.result_param2;
-	command_ack.command = ack.command;
-	command_ack.result = ack.result;
-	command_ack.from_external = true;
-	command_ack.result_param1 = ack.progress;
-	command_ack.target_system = ack.target_system;
-	command_ack.target_component = ack.target_component;
+	vehicle_command_ack_s command_ack = {
+		.timestamp = hrt_absolute_time(),
+		.result_param2 = ack.result_param2,
+		.command = ack.command,
+		.result = ack.result,
+		.from_external = true,
+		.result_param1 = ack.progress,
+		.target_system = ack.target_system,
+		.target_component = ack.target_component,
+		.source_system = msg->sysid,
+		.source_component = msg->compid
+	};
 
 	if (_command_ack_pub == nullptr) {
 		_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
@@ -1999,6 +2007,30 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			tstatus.heartbeat_time = tstatus.timestamp;
 			tstatus.system_id = msg->sysid;
 			tstatus.component_id = msg->compid;
+
+			if (_telemetry_status_pub == nullptr) {
+				int multi_instance;
+				_telemetry_status_pub = orb_advertise_multi(ORB_ID(telemetry_status), &tstatus, &multi_instance, ORB_PRIO_HIGH);
+
+			} else {
+				orb_publish(ORB_ID(telemetry_status), _telemetry_status_pub, &tstatus);
+			}
+
+		} else if (hb.type == MAV_TYPE_CHARGING_STATION) {
+			/* recieved charging station heartbeat */
+			struct charging_station_state_s state;
+			state.id = msg->sysid;
+			state.base_mode = hb.base_mode;
+			state.custom_mode = hb.custom_mode;
+			state.system_status = hb.system_status;
+			state.timestamp = hrt_absolute_time();
+
+			if (_charging_station_state_pub == nullptr) {
+				_charging_station_state_pub = orb_advertise(ORB_ID(charging_station_state), &state);
+
+			} else {
+				orb_publish(ORB_ID(charging_station_state), _charging_station_state_pub, &state);
+			}
 		}
 	}
 }
@@ -2632,6 +2664,27 @@ void MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 	} else {
 		orb_publish(ORB_ID(debug_array), _debug_array_pub, &debug_topic);
 	}
+}
+
+void MavlinkReceiver::handle_message_global_position_int(mavlink_message_t *msg)
+{
+	mavlink_global_position_int_t pos;
+	mavlink_msg_global_position_int_decode(msg, &pos);
+
+	external_vehicle_position_s topic_pos;
+	topic_pos.timestamp = hrt_absolute_time();
+	topic_pos.id = msg->sysid;
+	topic_pos.lat = pos.lat * 1e-7;
+	topic_pos.lon = pos.lon * 1e-7;
+	topic_pos.alt = pos.alt * 1e-3f;
+	topic_pos.yaw_valid = pos.hdg != UINT16_MAX;
+
+	if (topic_pos.yaw_valid) {
+		topic_pos.yaw = matrix::wrap_pi(pos.hdg / 1e2f * M_DEG_TO_RAD_F);
+	}
+
+	int inst = 0;
+	orb_publish_auto(ORB_ID(external_vehicle_position), &_external_vehicle_position_pub, &topic_pos, &inst, ORB_PRIO_DEFAULT);
 }
 
 /**

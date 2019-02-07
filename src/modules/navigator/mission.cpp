@@ -58,6 +58,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/external_vehicle_position.h>
 
 using matrix::wrap_pi;
 
@@ -165,6 +166,8 @@ Mission::on_activation()
 	// we already reset the mission items
 	_execution_mode_changed = false;
 
+	PX4_INFO("Mission::on_activation(), set_mission_items()");
+
 	set_mission_items();
 
 	// unpause triggering if it was paused
@@ -211,11 +214,15 @@ Mission::on_active()
 		}
 
 		_execution_mode_changed = false;
+		PX4_INFO("offboard_updated, set_mission_items()");
 		set_mission_items();
 	}
 
 	/* lets check if we reached the current mission item */
-	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
+	bool reached = is_mission_item_reached();
+	// PX4_INFO("Mission item reached? %d", reached);
+
+	if (_mission_type != MISSION_TYPE_NONE && reached) {
 		/* If we just completed a takeoff which was inserted before the right waypoint,
 		   there is no need to report that we reached it because we didn't. */
 		if (_work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
@@ -224,6 +231,7 @@ Mission::on_active()
 
 		if (_mission_item.autocontinue) {
 			/* switch to next waypoint if 'autocontinue' flag set */
+			PX4_INFO("mission item reached, set_mission_items()");
 			advance_mission();
 			set_mission_items();
 		}
@@ -277,6 +285,80 @@ Mission::on_active()
 
 		} else {
 			_navigator->get_precland()->on_active();
+		}
+	}
+
+	if ((_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND ||
+	    _mission_item.nav_cmd == NAV_CMD_LAND) &&
+	    (int)_mission_item.params[2] != 0) { // Handle landing to charging station
+
+		bool external_position_updated;
+		external_vehicle_position_s charging_station_position;
+		position_setpoint_triplet_s *sp = _navigator->get_position_setpoint_triplet();
+		int external_vehicle_position_sub = _navigator->get_external_vehicle_position_sub();
+
+		// update charging station position
+		orb_check(external_vehicle_position_sub, &external_position_updated);
+		orb_copy(ORB_ID(external_vehicle_position), external_vehicle_position_sub, &charging_station_position);
+
+		if (_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND) { // moving to land point
+			if (external_position_updated && charging_station_position.id == (int)_mission_item.params[2]) {
+				sp->current.lat = charging_station_position.lat;
+				sp->current.lon = charging_station_position.lon;
+				sp->current.valid = true;
+				copy_position_if_valid(&_mission_item, &sp->current); // update mission item to reched check correctly
+				_navigator->set_position_setpoint_triplet_updated();
+			}
+
+		} else if (_mission_item.nav_cmd == NAV_CMD_LAND) { // performing landing
+			if (_mission_item.land_precision == 0) { // not a precision landing
+				if (charging_station_position.id == (int)_mission_item.params[2]) {
+					sp->current.lat = charging_station_position.lat;
+					sp->current.lon = charging_station_position.lon;
+
+					if (charging_station_position.yaw_valid)
+						sp->current.yaw = charging_station_position.yaw;
+					
+					sp->current.valid = true;
+				}
+
+				// check are we in acceptance radius
+				float horiz_dist = get_distance_to_next_waypoint(
+						_navigator->get_global_position()->lat,
+						_navigator->get_global_position()->lon,
+						sp->current.lat, sp->current.lon);
+
+				if (horiz_dist > 0.5f) {
+					sp->current.alt = _navigator->get_global_position()->alt;
+					sp->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+				} else {
+					sp->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
+				}
+
+				_navigator->set_position_setpoint_triplet_updated();
+			}
+			// precision landing, it's a charging station from the waypoint and the charging station yaw is valid
+			else if ((charging_station_position.id == (int)_mission_item.params[2]) &&
+					(charging_station_position.yaw_valid)) {
+				// replace landing target yaw with a charging station yaw
+				sp->current.yaw = charging_station_position.yaw;
+
+				_navigator->set_position_setpoint_triplet_updated();
+			}
+		}
+	}
+
+	if (_mission_item.nav_cmd == NAV_CMD_CHARGING_STATION_ACTION) {
+		_navigator->get_charging_station()->on_active();
+
+		if (_navigator->get_charging_station()->is_mission_item_reached()) {
+			if (_mission_item.autocontinue) {
+				/* switch to next waypoint if 'autocontinue' flag set */
+				advance_mission();
+				set_mission_items();
+				return;
+			}
 		}
 	}
 }
@@ -992,6 +1074,11 @@ Mission::set_mission_items()
 				// nothing to do, all commands are ignored
 				break;
 			}
+		}
+
+		if (_mission_item.nav_cmd == NAV_CMD_CHARGING_STATION_ACTION) {
+			_navigator->get_charging_station()->set_params(_mission_item.params[0], _mission_item.params[1]);
+			_navigator->get_charging_station()->on_activation();
 		}
 	}
 

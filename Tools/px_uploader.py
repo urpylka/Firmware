@@ -654,6 +654,7 @@ class uploader(object):
                                    "If you know you that the board does not have the silicon errata, use\n"
                                    "this script with --force, or update the bootloader. If you are invoking\n"
                                    "upload using make, you can use force-upload target to force the upload.\n")
+
         self.__erase("Erase  ")
         self.__program("Program", fw)
 

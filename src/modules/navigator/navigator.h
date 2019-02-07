@@ -54,6 +54,7 @@
 #include "rcloss.h"
 #include "rtl.h"
 #include "takeoff.h"
+#include "charging_station.h"
 
 #include "navigation.h"
 
@@ -73,6 +74,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/external_vehicle_position.h>
 #include <uORB/uORB.h>
 
 /**
@@ -119,6 +121,8 @@ public:
 
 	void		publish_vehicle_cmd(vehicle_command_s *vcmd);
 
+	void 		publish_vehicle_cmd_to_external(vehicle_command_s *vcmd);
+
 	/**
 	 * Generate an artificial traffic indication
 	 *
@@ -157,6 +161,7 @@ public:
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
+	ChargingStation *get_charging_station() { return &_charging_station; }
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
@@ -164,6 +169,7 @@ public:
 	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos); }
 
 	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
+	int		get_external_vehicle_position_sub() { return _external_vehicle_position_sub; }
 
 	Geofence	&get_geofence() { return _geofence; }
 
@@ -300,6 +306,7 @@ private:
 	int		_traffic_sub{-1};		/**< traffic subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
+	int		_external_vehicle_position_sub{-1};
 
 	orb_advert_t	_geofence_result_pub{nullptr};
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
@@ -351,6 +358,7 @@ private:
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 	FollowTarget	_follow_target;
+	ChargingStation	_charging_station;
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 

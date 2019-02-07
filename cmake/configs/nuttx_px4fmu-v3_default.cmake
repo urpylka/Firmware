@@ -166,4 +166,7 @@ set(config_module_list
 
 	# Hardware test
 	examples/hwtest
+
+	# COEX
+	modules/coex_tools
 )

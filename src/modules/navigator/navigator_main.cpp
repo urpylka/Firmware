@@ -96,7 +96,8 @@ Navigator::Navigator() :
 	_dataLinkLoss(this),
 	_engineFailure(this),
 	_gpsFailure(this),
-	_follow_target(this)
+	_follow_target(this),
+	_charging_station(this)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -190,6 +191,7 @@ Navigator::run()
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
+	_external_vehicle_position_sub = orb_subscribe(ORB_ID(external_vehicle_position));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -1288,6 +1290,23 @@ Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 		vcmd->target_component = _vstatus.component_id;
 		break;
 	}
+
+	if (_vehicle_cmd_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, vcmd);
+
+	} else {
+		_vehicle_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+	}
+}
+
+void
+Navigator::publish_vehicle_cmd_to_external(vehicle_command_s *vcmd)
+{
+	vcmd->timestamp = hrt_absolute_time();
+	vcmd->source_system = _vstatus.system_id;
+	vcmd->source_component = _vstatus.component_id;
+	vcmd->confirmation = false;
+	vcmd->from_external = false;
 
 	if (_vehicle_cmd_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, vcmd);

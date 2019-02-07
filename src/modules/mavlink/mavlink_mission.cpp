@@ -1342,6 +1342,14 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			// TODO: abort alt param1
 			mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4));
 			mission_item->land_precision = mavlink_mission_item->param2;
+			mission_item->params[2] = 0;
+			break;
+
+		case MAV_CMD_WAYPOINT_USER_1:
+			mission_item->nav_cmd = NAV_CMD_LAND;
+			mission_item->yaw = matrix::wrap_pi(mavlink_mission_item->param4 * M_DEG_TO_RAD_F);
+			mission_item->land_precision = mavlink_mission_item->param2;
+			mission_item->params[2] = mavlink_mission_item->param3;
 			break;
 
 		case MAV_CMD_NAV_TAKEOFF:
@@ -1469,6 +1477,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
 		case MAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 		case MAV_CMD_DO_SET_ROI_NONE:
+		case MAV_CMD_USER_1:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			break;
 
@@ -1605,7 +1614,13 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_LAND:
 			// TODO: param1 abort alt
 			mavlink_mission_item->param2 = mission_item->land_precision;
-			mavlink_mission_item->param4 = math::degrees(mission_item->yaw);
+			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
+			// mavlink_mission_item->param4 = math::degrees(mission_item->yaw);
+			if ((int)mission_item->params[2] != 0) {
+				// Land to charging station waypoint
+				mavlink_mission_item->param3 = mission_item->params[2];
+				mavlink_mission_item->command = MAV_CMD_WAYPOINT_USER_1;
+			}
 			break;
 
 		case NAV_CMD_TAKEOFF:

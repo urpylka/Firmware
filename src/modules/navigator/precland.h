@@ -44,6 +44,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <px4_module_params.h>
 #include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/vehicle_local_position.h>
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -85,6 +86,8 @@ private:
 	void run_state_search();
 	void run_state_fallback();
 
+	bool check_hacc_rad(vehicle_local_position_s *vehicle_local_position);
+
 	// attempt to switch to a different state. Returns true if state change was successful, false otherwise
 	bool switch_to_state_start();
 	bool switch_to_state_horizontal_approach();
@@ -121,6 +124,9 @@ private:
 
 	PrecLandMode _mode{PrecLandMode::Opportunistic};
 
+	float _strict_funnel_k; /** A linear funnel part slope (0 to use cylinder) */
+	float _strict_funnel_r_o;  /** A linear funnel part offset */
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::PLD_BTOUT>) _param_timeout,
 		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_hacc_rad,
@@ -129,7 +135,10 @@ private:
 		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_search_timeout,
 		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_max_searches,
 		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_acceleration_hor,
-		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_xy_vel_cruise
+		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_xy_vel_cruise,
+		(ParamBool<px4::params::PLD_STRICT>) _param_strict,
+		(ParamFloat<px4::params::PLD_FUNNEL_TR>) _param_funnel_top_rad,
+		(ParamFloat<px4::params::PLD_FUNNEL_LEA>) _param_funnel_le_alt,
+		(ParamFloat<px4::params::PLD_STATE_TIME>) _param_state_timeout
 	)
-
 };
