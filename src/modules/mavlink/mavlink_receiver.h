@@ -164,11 +164,8 @@ private:
 	void handle_message_named_value_float(mavlink_message_t *msg);
 	void handle_message_debug(mavlink_message_t *msg);
 	void handle_message_debug_vect(mavlink_message_t *msg);
-<<<<<<< HEAD
 	void handle_message_debug_float_array(mavlink_message_t *msg);
-=======
 	void handle_message_global_position_int(mavlink_message_t *msg);
->>>>>>> origin/strict_precland
 
 	void *receive_thread(void *arg);
 
@@ -234,6 +231,7 @@ private:
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _pos_sp_triplet_pub;
+	orb_advert_t _telemetry_status_pub;
 	orb_advert_t _mocap_odometry_pub;
 	orb_advert_t _visual_odometry_pub;
 	orb_advert_t _radio_status_pub;

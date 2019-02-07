@@ -205,21 +205,21 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 
 			px4_join(OUT serial_ports LIST "${serial_ports}" GLUE ",")
 
-			add_custom_target(upload
-				COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_file}
-				DEPENDS ${fw_file}
-				COMMENT "uploading px4"
-				VERBATIM
-				USES_TERMINAL
-				)
+		#	add_custom_target(upload
+		#		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_file}
+		#		DEPENDS ${fw_file}
+		#		COMMENT "uploading px4"
+		#		VERBATIM
+		#		USES_TERMINAL
+		#		)
 
-			add_custom_target(force-upload
-				COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --force --port ${serial_ports} ${fw_file}
-				DEPENDS ${fw_file}
-				COMMENT "uploading px4 with --force"
-				VERBATIM
-				USES_TERMINAL
-				)
+		#	add_custom_target(force-upload
+		#		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --force --port ${serial_ports} ${fw_file}
+		#		DEPENDS ${fw_file}
+		#		COMMENT "uploading px4 with --force"
+		#		VERBATIM
+		#		USES_TERMINAL
+		#		)
 		endif()
 		px4_join(OUT serial_ports LIST "${serial_ports}" GLUE ",")
 		add_custom_target(upload

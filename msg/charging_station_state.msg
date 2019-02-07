@@ -1,4 +1,5 @@
 # State of a charging station
+uint64 timestamp	# time since system start (microseconds)
 
 uint8 BASE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1
 uint8 SYSTEM_STATUS_CRITICAL = 5
