@@ -588,7 +588,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		mavlink_log_info(&_mavlink_log_pub, "Video start command received");
 		vehicle_command_s vcmd = {};
 		vcmd.timestamp = hrt_absolute_time();
-		vcmd.param2 = 1.0;
+		vcmd.param2 = 2.0; // 1 - H264, 2 - raw TIFF sequence
 		vcmd.command = 2500;//vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE;
 		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		
