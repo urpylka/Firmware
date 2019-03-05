@@ -89,6 +89,8 @@ typedef enum : int32_t {
 	TRIGGER_MODE_DISTANCE_ON_CMD
 } trigger_mode_t;
 
+orb_advert_t        _camtrig_mavlink_log_pub;
+
 #define commandParamToInt(n) static_cast<int>(n >= 0 ? n + 0.5f : n - 0.5f)
 
 class CameraTrigger
@@ -169,7 +171,7 @@ private:
 	bool			_one_shot;
 	bool			_test_shot;
 	bool 			_turning_on;
-        bool                    _video_started;
+	bool            _video_started;
 	matrix::Vector2f	_last_shoot_position;
 	bool			_valid_position;
 
@@ -178,7 +180,7 @@ private:
 
 	orb_advert_t		_trigger_pub;
 	orb_advert_t		_cmd_ack_pub;
-
+	
 	param_t			_p_mode;
 	param_t			_p_activation_time;
 	param_t			_p_interval;
@@ -638,22 +640,33 @@ CameraTrigger::cycle_trampoline(void *arg)
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else if (cmd.command == 2500) {
-                        //vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE
-                        if (!trig->_video_started){
-                            trig->_camera_interface->trigger_video(true);
-                            trig->_video_started = true;
-                        }
-                        cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			mavlink_log_info(&_camtrig_mavlink_log_pub, "Camtrig: VIDEO_START_CAPTURE received");
+			//vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE
+			if (!trig->_video_started){
+				trig->_camera_interface->trigger_video(true);
+				trig->_video_started = true;
+			}
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
                         
-                } else if (cmd.command == 2501) {
-                        //vehicle_command_s::VEHICLE_CMD_VIDEO_STOP_CAPTURE
-                        if (trig->_video_started){
-                            trig->_camera_interface->trigger_video(false);
-                            trig->_video_started = false;
-                        }
-                        cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		} else if (cmd.command == 2501) {
+			mavlink_log_info(&_camtrig_mavlink_log_pub, "Camtrig: VIDEO_STOP_CAPTURE received");
+			//vehicle_command_s::VEHICLE_CMD_VIDEO_STOP_CAPTURE
+			if (trig->_video_started){
+				trig->_camera_interface->trigger_video(false);
+				trig->_video_started = false;
+			}
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		
+		} else if (cmd.command == 2000) {
+			mavlink_log_info(&_camtrig_mavlink_log_pub, "Camtrig: IMAGE_START_CAPTURE received");
+			//vehicle_command_s::VEHICLE_CMD_IMAGE_START_CAPTURE
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
                         
-                }
+		} else if (cmd.command == 2001) {
+			mavlink_log_info(&_camtrig_mavlink_log_pub, "Camtrig: IMAGE_STOP_CAPTURE received");
+			//vehicle_command_s::VEHICLE_CMD_IMAGE_STOP_CAPTURE
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		}
 
 	}
 

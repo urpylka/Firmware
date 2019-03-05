@@ -1230,33 +1230,83 @@ Navigator::set_mission_failure(const char *reason)
 void
 Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 {
-	vcmd->timestamp = hrt_absolute_time();
-	vcmd->source_system = _vstatus.system_id;
-	vcmd->source_component = _vstatus.component_id;
-	vcmd->target_system = _vstatus.system_id;
-	vcmd->confirmation = false;
-	vcmd->from_external = false;
-
 	// The camera commands are not processed on the autopilot but will be
 	// sent to the mavlink links to other components.
-	switch (vcmd->command) {
-	case NAV_CMD_IMAGE_START_CAPTURE:
-	case NAV_CMD_IMAGE_STOP_CAPTURE:
-	case NAV_CMD_VIDEO_START_CAPTURE:
-	case NAV_CMD_VIDEO_STOP_CAPTURE:
-		vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
-		break;
+	if (vcmd->command == NAV_CMD_VIDEO_START_CAPTURE)
+	{
+		mavlink_log_info(&_mavlink_log_pub, "Navigator: video_start received");
+		vehicle_command_s camera_cmd = {};
+		camera_cmd.timestamp = hrt_absolute_time();
+		camera_cmd.command = vcmd->command;
+		camera_cmd.param1 = vcmd->param1;
+		camera_cmd.param2 = vcmd->param2;
+		camera_cmd.param3 = vcmd->param3;
+		camera_cmd.param4 = vcmd->param4;
 
-	default:
-		vcmd->target_component = _vstatus.component_id;
-		break;
-	}
+		if (_vehicle_cmd_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, &camera_cmd);
+		} else {
+			_vehicle_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &camera_cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		}
+	} else if (vcmd->command == NAV_CMD_VIDEO_STOP_CAPTURE) {
+		mavlink_log_info(&_mavlink_log_pub, "Navigator: video_stop received");
+		vehicle_command_s camera_cmd = {};
+		camera_cmd.timestamp = hrt_absolute_time();
+		camera_cmd.command = vcmd->command;
+		camera_cmd.param1 = vcmd->param1;
+		camera_cmd.param2 = vcmd->param2;
+		camera_cmd.param3 = vcmd->param3;
+		camera_cmd.param4 = vcmd->param4;
 
-	if (_vehicle_cmd_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, vcmd);
+		if (_vehicle_cmd_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, &camera_cmd);
+		} else {
+			_vehicle_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &camera_cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		}
+	} else if (vcmd->command == NAV_CMD_IMAGE_START_CAPTURE) {
+		mavlink_log_info(&_mavlink_log_pub, "Navigator: image_start received");
+		vehicle_command_s camera_cmd = {};
+		camera_cmd.timestamp = hrt_absolute_time();
+		camera_cmd.command = vcmd->command;
+		camera_cmd.param1 = vcmd->param1;
+		camera_cmd.param2 = vcmd->param2;
+		camera_cmd.param3 = vcmd->param3;
+		camera_cmd.param4 = vcmd->param4;
 
+		if (_vehicle_cmd_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, &camera_cmd);
+		} else {
+			_vehicle_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &camera_cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		}
+	} else if (vcmd->command == NAV_CMD_IMAGE_STOP_CAPTURE) {
+		mavlink_log_info(&_mavlink_log_pub, "Navigator: image_stop received");
+		vehicle_command_s camera_cmd = {};
+		camera_cmd.timestamp = hrt_absolute_time();
+		camera_cmd.command = vcmd->command;
+		camera_cmd.param1 = vcmd->param1;
+		camera_cmd.param2 = vcmd->param2;
+		camera_cmd.param3 = vcmd->param3;
+		camera_cmd.param4 = vcmd->param4;
+
+		if (_vehicle_cmd_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, &camera_cmd);
+		} else {
+			_vehicle_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &camera_cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		}
 	} else {
-		_vehicle_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		vcmd->timestamp = hrt_absolute_time();
+		vcmd->source_system = _vstatus.system_id;
+		vcmd->source_component = _vstatus.component_id;
+		vcmd->target_system = _vstatus.system_id;
+		vcmd->confirmation = false;
+		vcmd->from_external = false;
+		vcmd->target_component = _vstatus.component_id;
+
+		if (_vehicle_cmd_pub != nullptr) {
+			orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, vcmd);
+		} else {
+			_vehicle_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		}
 	}
 }
 
