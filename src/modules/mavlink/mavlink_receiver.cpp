@@ -585,19 +585,26 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		get_message_interval((int)cmd_mavlink.param1);
                 
 	} else if (cmd_mavlink.command == 2500) {
-		mavlink_log_info(&_mavlink_log_pub, "Video start command received");
+		// mavlink_log_info(&_mavlink_log_pub, "Video start command received");
 		vehicle_command_s vcmd = {};
 		vcmd.timestamp = hrt_absolute_time();
-		vcmd.param2 = 2.0; // 1 - H264, 2 - raw TIFF sequence
+		vcmd.param2 = 1.0;
 		vcmd.command = 2500;//vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE;
-		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		
+		if (_cmd_pub == nullptr) {
+			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		} else {
+			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
+		}
 	} else if (cmd_mavlink.command == 2501) {
-		mavlink_log_info(&_mavlink_log_pub, "Video stop command received");
+		// mavlink_log_info(&_mavlink_log_pub, "Video stop command received");
 		vehicle_command_s vcmd = {};
 		vcmd.timestamp = hrt_absolute_time();
 		vcmd.command = 2501;//vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE;
-		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		if (_cmd_pub == nullptr) {
+			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		} else {
+			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
+		}
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_CONTROL_VIDEO) {
 		mavlink_log_info(&_mavlink_log_pub, "MAV_CMD_DO_CONTROL_VIDEO command received");
@@ -611,7 +618,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		vcmd.param5 = vehicle_command.param5;
 		vcmd.param6 = vehicle_command.param6;
 		vcmd.param7 = vehicle_command.param7;
-		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		if (_cmd_pub == nullptr) {
+			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		} else {
+			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
+		}
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_DIGICAM_CONFIGURE) {
 		mavlink_log_info(&_mavlink_log_pub, "MAV_CMD_DO_DIGICAM_CONFIGURE command received");
@@ -625,7 +636,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		vcmd.param5 = vehicle_command.param5;
 		vcmd.param6 = vehicle_command.param6;
 		vcmd.param7 = vehicle_command.param7;
-		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		if (_cmd_pub == nullptr) {
+			_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		} else {
+			orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
+		}
 		
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
 		send_flight_information();
