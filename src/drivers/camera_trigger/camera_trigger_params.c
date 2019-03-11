@@ -139,3 +139,57 @@ PARAM_DEFINE_INT32(TRIG_PINS, 56);
  * @group Camera trigger
  */
 PARAM_DEFINE_FLOAT(TRIG_DISTANCE, 25.0f);
+
+/**
+ * RC input channel to take photo once. If 0 - photo capturing disabled.
+ *
+ * @min 0
+ * @max 18
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_PHOTO_CHAN, 0);
+
+/**
+ * PWM level to take photo once
+ *
+ * @min 900
+ * @max 2000
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_PHOTO_PWM, 2000);
+
+/**
+ * PWM level to "reload" photo trigger
+ *
+ * @min 900
+ * @max 2000
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_PHOTO_NTRL, 1500);
+
+/**
+ * RC input channel to start video recording. If 0 - video recording disabled.
+ *
+ * @min 0
+ * @max 18
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_VIDEO_CHAN, 0);
+
+/**
+ * PWM level to take photo once
+ *
+ * @min 900
+ * @max 2000
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_VIDEO_PWM, 1000);
+
+/**
+ * PWM level to stop video recording
+ *
+ * @min 900
+ * @max 2000
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(TRIG_VIDEO_NTRL, 1500);
