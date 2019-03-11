@@ -41,6 +41,18 @@ before_install:
 script:
   - ./Tools/docker_run.sh make ${BUILD_TARGET}
 
+deploy:
+  provider: releases
+  api_key: ${GITHUB_OAUTH_TOKEN}
+  file_glob: true
+  file:
+    - build/**/*.px4
+    - build/**/*.elf
+  skip_cleanup: true
+  on:
+    tags: true
+  prerelease: true
+
 #addons:
 #  coverity_scan:
 #    project:
