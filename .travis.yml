@@ -16,8 +16,13 @@ matrix:
   fast_finish: true
   include:
     - env: BUILD_TARGET=px4fmu-v2_default
+    - env: BUILD_TARGET=px4fmu-v2_lpe
     - env: BUILD_TARGET=px4fmu-v3_default
+    - env: BUILD_TARGET=px4fmu-v3_rtps
     - env: BUILD_TARGET=px4fmu-v4_default
+    - env: BUILD_TARGET=px4fmu-v4_rtps
+    - env: BUILD_TARGET=px4fmu-v5_default
+    - env: BUILD_TARGET=px4fmu-v5_rtps
   allow_failures:
     - env: BUILD_TARGET=tests_coverage
 
