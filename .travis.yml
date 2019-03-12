@@ -2,7 +2,7 @@
 # http://travis-ci.org
 
 sudo: required
-
+dist: xenial
 services:
   - docker
 
@@ -11,24 +11,6 @@ language: cpp
 git:
   depth: 2000
   submodules: false
-
-env:
-  global:
-    # COVERITY_SCAN_TOKEN
-    - secure: "Q4IAcmo1r5cr/UvhcixQa6QN5e5eTcP7FeidzEbX2+BA38yo2BH5O9YQCvZe2AI1Na8ZCjVx3H2luGgDwOKgzAIAjXjZ2KbmXYc6Ns/j/BXScY05dCCzYEhXKD98NZxIKH9lLN9pYDGRA8pChGRJnVlFOr1JHHHnB801+osHy7M="
-    # AWS KEY: $PX4_AWS_KEY
-    - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
-    # AWS SECRET: $PX4_AWS_SECRET
-    - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
-
-matrix:
-  fast_finish: true
-  include:
-    - env: BUILD_TARGET=coverity_scan
-      dist: trusty
-      if: branch = coverity_scan
-  allow_failures:
-    - env: BUILD_TARGET=tests_coverage
 
 cache:
   ccache: true
@@ -42,21 +24,62 @@ before_install:
   # use git:// to fetch instead of https://
   - git config --global url."git://".insteadOf https://
 
+env:
+ - BUILD_TARGET=px4fmu-v2_default
+ - BUILD_TARGET=px4fmu-v2_lpe
+ - BUILD_TARGET=px4fmu-v3_default
+ - BUILD_TARGET=px4fmu-v4_default
+ - BUILD_TARGET=px4fmu-v5_default
+
+stage: Build
+
 script:
-  - ./Tools/docker_run.sh make ${BUILD_TARGET}
+ - ./Tools/docker_run.sh make ${BUILD_TARGET}
 
-after_success:
-  # upload code coverage
-  - if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then
-      [ "${BUILD_TARGET}" = "tests_coverage" ] && bash <(curl -s https://codecov.io/bash) -F unittests;
-    fi
+jobs:
+  include:
+    - stage: Tests
+      name: Self-tests
+      script: PX4_DOCKER_REPO="px4io/px4-dev-simulation:2018-03-30" ./Tools/docker_run.sh make tests
+    - stage: Tests 
+      name: Mission test
+      script: PX4_DOCKER_REPO="px4io/px4-dev-ros:2018-03-30" ./Tools/docker_run.sh make tests_mission
+    - stage: Tests
+      name: Offboard test
+      script: PX4_DOCKER_REPO="px4io/px4-dev-ros:2018-03-30" ./Tools/docker_run.sh make tests_offboard
+    - stage: Annotate
+      name: Auto-generate changelog
+      language: python
+      python: 3.6
+      install:
+        - pip install GitPython PyGithub
+      script:
+        - python ./gen_changelog.py
 
-addons:
-  coverity_scan:
-    project:
-      name: "PX4/Firmware"
-      description: "Build submitted via Travis CI"
-    notification_email: ci@px4.io
-    build_command_prepend: "make distclean"
-    build_command: "make posix_sitl_default"
-    branch_pattern: coverity_scan
+stages:
+  - Tests
+  - Build
+  - Annotate
+
+deploy:
+  provider: releases
+  api_key: ${GITHUB_OAUTH_TOKEN}
+  file_glob: true
+  file:
+    - build/**/*px4fmu*.px4
+    - build/**/*px4fmu*.elf
+  skip_cleanup: true
+  on:
+    tags: true
+  prerelease: true
+  draft: true
+
+#addons:
+#  coverity_scan:
+#    project:
+#      name: "PX4/Firmware"
+#      description: "Build submitted via Travis CI"
+#    notification_email: ci@px4.io
+#    build_command_prepend: "make distclean"
+#    build_command: "make posix_sitl_default"
+#    branch_pattern: coverity_scan
