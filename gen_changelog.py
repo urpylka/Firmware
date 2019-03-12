@@ -64,8 +64,14 @@ print('Current changelog: \n{}'.format(changelog))
 if upload_changelog:
     gh = Github(api_key)
     gh_repo = gh.get_repo(repo_slug)
-    # Release ID should match our tag ID
-    gh_release = gh_repo.get_release(current_tag)
+    # Get all releases and find ours by its tag name
+    gh_release = None
+    for release in gh_repo.get_releases():
+        if release.tag_name == current_tag:
+            gh_release = release
+    if gh_release is None:
+        # We could not find the correct release, so here's our last resort. It will most likely fail.
+        gh_release = gh_repo.get_release(current_tag)
     gh_body = gh_release.body
     if gh_body is None:
         gh_body = ''
