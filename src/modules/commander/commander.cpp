@@ -2760,7 +2760,11 @@ Commander::run()
 		arm_auth_update(now, params_updated || param_init_forced);
 
 		// Handle shutdown request from emergency battery action
-		if(shutdown_allowed() && dangerous_battery_level_requests_poweroff){
+		// FIXME: The following code only passes the simulator because the
+		// FIXME: conditionals are reversed. Calling shutdown_allowed() first
+		// FIXME: won't allow arming in the simulator, and *may* cause bugs on
+		// FIXME: real hardware; we *really* should investigate deeper.
+		if (dangerous_battery_level_requests_poweroff && shutdown_allowed()) {
 			mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
 			usleep(200000);
 			int ret_val = px4_shutdown_request(false, false);
