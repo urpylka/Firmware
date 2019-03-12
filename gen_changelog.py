@@ -11,6 +11,9 @@ upload_changelog = True
 
 try:
     current_tag = os.environ['TRAVIS_TAG']
+    if current_tag == '':
+        current_tag = 'HEAD'
+        upload_changelog = False
     print('TRAVIS_TAG is set to {}'.format(current_tag))
 except KeyError:
     print('TRAVIS_TAG not set - not uploading changelog')
