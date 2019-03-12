@@ -47,10 +47,19 @@ jobs:
     - stage: Tests
       name: Offboard test
       script: PX4_DOCKER_REPO="px4io/px4-dev-ros:2018-03-30" ./Tools/docker_run.sh make tests_offboard
+    - stage: Annotate
+      name: Auto-generate changelog
+      language: python
+      python: 3.6
+      install:
+        - pip install GitPython PyGithub
+      script:
+        - python ./gen_changelog.py
 
 stages:
   - Tests
   - Build
+  - Annotate
 
 deploy:
   provider: releases
