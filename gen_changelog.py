@@ -75,7 +75,7 @@ if upload_changelog:
     gh_body = gh_release.body
     if gh_body is None:
         gh_body = ''
-    gh_body = '{}\n##Changes between {} and {}:\n\n{}'.format(gh_body, base_tag, current_tag, changelog)
+    gh_body = '{}\n## Changes between {} and {}:\n\n{}'.format(gh_body, base_tag, current_tag, changelog)
     print('New release body: {}'.format(gh_body))
     gh_release.update_release(gh_release.tag_name, gh_body, draft=True, prerelease=True,
                               tag_name=gh_release.tag_name, target_commitish=gh_release.target_commitish)
