@@ -73,6 +73,7 @@ deploy:
     tags: true
   prerelease: true
   draft: true
+  name: ${TRAVIS_TAG}
 
 #addons:
 #  coverity_scan:
