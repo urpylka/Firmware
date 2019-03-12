@@ -43,7 +43,8 @@ print('Opening repository at {}'.format(repo_path))
 repo = Repo(repo_path)
 git = repo.git()
 try:
-    git.fetch('--unshallow')
+    print('Unshallowing repository')
+    git.fetch('--unshallow', '--tags')
 except exc.GitCommandError:
     print('Repository already unshallowed')
 if current_tag != 'HEAD':
