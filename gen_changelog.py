@@ -57,7 +57,7 @@ else:
     base_tag = description.split('-')[0]
     print('Base tag set to {}'.format(base_tag))
 
-changelog = git.log('{}...{}'.format(base_tag, current_tag), '--pretty=format:* %s (%an) %H\n')
+changelog = git.log('{}...{}'.format(base_tag, current_tag), '--pretty=format:* %H %s *(%an)*')
 print('Current changelog: \n{}'.format(changelog))
 
 # Only interact with Github if uploading is enabled
@@ -75,7 +75,7 @@ if upload_changelog:
     gh_body = gh_release.body
     if gh_body is None:
         gh_body = ''
-    gh_body = '{}\n## Changes between {} and {}:\n\n{}'.format(gh_body, base_tag, current_tag, changelog)
+    gh_body = '{}\nChanges between `{}` and `{}`:\n\n{}'.format(gh_body, base_tag, current_tag, changelog)
     print('New release body: {}'.format(gh_body))
     gh_release.update_release(gh_release.tag_name, gh_body, draft=True, prerelease=True,
                               tag_name=gh_release.tag_name, target_commitish=gh_release.target_commitish)
