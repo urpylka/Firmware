@@ -679,7 +679,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 
 	struct optical_flow_s f = {};
 
-	f.timestamp = flow.time_usec;
+	f.timestamp = _mavlink_timesync.sync_stamp(flow.time_usec);
 	f.integration_timespan = flow.integration_time_us;
 	f.pixel_flow_x_integral = flow.integrated_x;
 	f.pixel_flow_y_integral = flow.integrated_y;
