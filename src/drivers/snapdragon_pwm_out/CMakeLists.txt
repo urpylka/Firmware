@@ -37,5 +37,6 @@ px4_add_module(
 	SRCS
 		snapdragon_pwm_out.cpp
 	DEPENDS
-		mixer_gen
+		mixer
+		pwm_limit
 	)

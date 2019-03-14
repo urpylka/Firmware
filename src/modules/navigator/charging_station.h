@@ -17,6 +17,7 @@ public:
 
 private:
 	bool in_flight();
+	void idle();
 	int _charging_station_state_sub{-1};
 	int _cmd_ack_sub{-1};
 	int _action;

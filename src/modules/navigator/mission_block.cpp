@@ -54,6 +54,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
+using matrix::wrap_pi;
+
 MissionBlock::MissionBlock(Navigator *navigator) :
 	NavigatorMode(navigator)
 {
@@ -287,7 +289,7 @@ MissionBlock::is_mission_item_reached()
 			}
 
 			/* for vtol back transition calculate acceptance radius based on time and ground speed */
-			if (_mission_item.vtol_back_transition) {
+			if (_mission_item.vtol_back_transition && !_navigator->get_vstatus()->is_rotary_wing) {
 
 				float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
 						       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
@@ -326,7 +328,8 @@ MissionBlock::is_mission_item_reached()
 			float cog = _navigator->get_vstatus()->is_rotary_wing ? _navigator->get_global_position()->yaw : atan2f(
 					    _navigator->get_global_position()->vel_e,
 					    _navigator->get_global_position()->vel_n);
-			float yaw_err = _wrap_pi(_mission_item.yaw - cog);
+
+			float yaw_err = wrap_pi(_mission_item.yaw - cog);
 
 			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
 			if (fabsf(yaw_err) < math::radians(_navigator->get_yaw_threshold())
@@ -678,6 +681,15 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 }
 
 void
+MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_t new_mode)
+{
+	item->nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
+	item->params[0] = (float) new_mode;
+	item->yaw = _navigator->get_global_position()->yaw;
+	item->autocontinue = true;
+}
+
+void
 MissionBlock::mission_apply_limitation(mission_item_s &item)
 {
 	/*
@@ -704,4 +716,15 @@ MissionBlock::mission_apply_limitation(mission_item_s &item)
 	/*
 	 * Add other limitations here
 	 */
+}
+
+float
+MissionBlock::get_absolute_altitude_for_item(struct mission_item_s &mission_item) const
+{
+	if (mission_item.altitude_is_relative) {
+		return mission_item.altitude + _navigator->get_home_position()->alt;
+
+	} else {
+		return mission_item.altitude;
+	}
 }

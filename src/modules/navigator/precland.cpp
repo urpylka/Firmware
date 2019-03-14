@@ -57,8 +57,6 @@
 
 #define SEC2USEC 1000000.0f
 
-#define STATE_TIMEOUT 10000000 // [us] Maximum time to spend in any state
-
 PrecLand::PrecLand(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
@@ -76,6 +74,59 @@ PrecLand::on_activation()
 	_state = PrecLandState::Start;
 	_search_cnt = 0;
 	_last_slewrate_time = 0;
+
+	// Strict precland is enabled
+	if (_param_strict.get())
+	{
+		// Strict precland in funnel enabled
+		if (_param_funnel_top_rad.get() > 0)
+		{
+			// Check if the funnel geometry is correct
+			if (_param_funnel_top_rad.get() > _param_hacc_rad.get() && 
+				_param_funnel_le_alt.get() >= _param_final_approach_alt.get() &&
+				_param_funnel_le_alt.get() < _param_search_alt.get())
+			{
+				/* Calculate funnel linear part slope from two points
+				* 	k = (r_t - r_h) / (a_s - a_b), where:
+				*		r_t - a top funnel linear part radius,
+				*		r_h - a bottom funnel linear part radius (a horizontal acceptance radius)
+				*		a_s - a top funnel height (a search altitude),
+				*		a_b - a bottom funnel linear part height. 
+				*/
+				_strict_funnel_k = (_param_funnel_top_rad.get() - _param_hacc_rad.get()) /
+					(_param_search_alt.get() - _param_funnel_le_alt.get());
+
+				/* Calculate funnel linear part offset from the top point
+				* 	r_o = r_t + k * a_s, where:
+				*		r_t - a top funnel radius,
+				*		k - a funnel linear part slope,
+				*		a_s - a top funnel height (a search altitude)
+				*/
+				_strict_funnel_r_o = _param_funnel_top_rad.get() - _strict_funnel_k * _param_search_alt.get();
+
+				PX4_INFO("Strict precland in a funnel");
+				// PX4_INFO("r(a) = a * %f + %f", (double)_strict_funnel_k, (double)_strict_funnel_r_o);
+			}
+			// Funnel parameters integrity check has failed
+			else
+			{
+				// Switch to the cylinder mode by setting linear funnel part slope to zero
+				_strict_funnel_k = 0;
+
+				PX4_ERR("Invalid strict precland funnel parameters");
+			}
+		}
+		else
+		{
+			// Switch to the cylinder mode by setting linear funnel part slope to zero
+			_strict_funnel_k = 0;
+
+			PX4_INFO("Strict precland in a cylinder");
+		}
+	}
+	// Strict precland is disabled
+	else
+		PX4_INFO("Regular precland");
 
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
@@ -241,7 +292,7 @@ PrecLand::run_state_horizontal_approach()
 
 	}
 
-	if (hrt_absolute_time() - _state_start_time > STATE_TIMEOUT) {
+	if (hrt_absolute_time() - _state_start_time > _param_state_timeout.get()*SEC2USEC) {
 		PX4_ERR("Precision landing took too long during horizontal approach phase.");
 
 		if (switch_to_state_fallback()) {
@@ -291,6 +342,35 @@ PrecLand::run_state_descend_above_target()
 		}
 
 		return;
+	}
+
+	// If a strict precland is requested (horizontal offset is important)
+	// HINT: This branch may try to switch to horizontal approach while target is not updated.
+	// It will cause multiple errors output after unsuccessfull switch_to_state_horizontal_approach
+	// calls. To avoid such behaviour _target_pose_updated flag check has been added.
+	if (_param_strict.get() && _target_pose_updated)
+	{
+		// Get the current local position
+		vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
+
+		// If we are out of the horizontal acceptance radius and over the final approach altitude
+		if (!check_hacc_rad(vehicle_local_position) &&
+			!check_state_conditions(PrecLandState::FinalApproach))
+		{
+			PX4_WARN("Out of the horizontal acceptance radius (strict precland)");
+
+			// Correct the vehicle position using the horizontal approach step
+			if (!switch_to_state_horizontal_approach())
+			{
+				// Landing target position has been lost
+				PX4_ERR("Can't switch to horizontal approach");
+
+				// No need to do anything else.
+				// Condition check will handle the case on the next iteration.
+			}
+
+			return;
+		}
 	}
 
 	// XXX need to transform to GPS coords because mc_pos_control only looks at that
@@ -364,6 +444,8 @@ PrecLand::switch_to_state_start()
 
 		_state = PrecLandState::Start;
 		_state_start_time = hrt_absolute_time();
+
+		PX4_WARN("Precland start state");
 		return true;
 	}
 
@@ -380,6 +462,8 @@ PrecLand::switch_to_state_horizontal_approach()
 
 		_state = PrecLandState::HorizontalApproach;
 		_state_start_time = hrt_absolute_time();
+
+		PX4_WARN("Precland horizontal approach");
 		return true;
 	}
 
@@ -392,6 +476,8 @@ PrecLand::switch_to_state_descend_above_target()
 	if (check_state_conditions(PrecLandState::DescendAboveTarget)) {
 		_state = PrecLandState::DescendAboveTarget;
 		_state_start_time = hrt_absolute_time();
+
+		PX4_WARN("Precland descend above target");
 		return true;
 	}
 
@@ -404,6 +490,8 @@ PrecLand::switch_to_state_final_approach()
 	if (check_state_conditions(PrecLandState::FinalApproach)) {
 		_state = PrecLandState::FinalApproach;
 		_state_start_time = hrt_absolute_time();
+
+		PX4_WARN("Precland final approach");
 		return true;
 	}
 
@@ -452,6 +540,36 @@ PrecLand::switch_to_state_done()
 	return true;
 }
 
+bool PrecLand::check_hacc_rad(vehicle_local_position_s *vehicle_local_position)
+{
+	// Strict precland is enabled and it's a strict precland in a funnel
+	if (_param_strict.get() && (_strict_funnel_k > 0))
+	{
+		/* Calculate radius using a funnel linear part function and then limit output value
+		* to the funnel top radius from the top and to the horizontal acceptance radius from
+		* the bottom forming a funnel.
+		*
+		* 	r(a) = a * k + r_o, where:
+		* 		a - a vehicle altitude,
+		*		k - a funnel linear part slope,
+		*		r_o - a funnel linear part offset.
+		*	
+		*/
+		float funnel_rad = math::max(math::min((_target_pose.z_abs - vehicle_local_position->z) *
+			_strict_funnel_k + _strict_funnel_r_o, _param_funnel_top_rad.get()), _param_hacc_rad.get());
+		
+		// PX4_WARN("FUNNEL: %f m, ALT: %f m", (double)funnel_rad, (double)fabsf(_target_pose.z_abs - vehicle_local_position->z));
+		
+		// Check if the vehicle is inside the funnel
+		return fabsf(_target_pose.x_abs - vehicle_local_position->x) < funnel_rad
+			    	&& fabsf(_target_pose.y_abs - vehicle_local_position->y) < funnel_rad;	
+	}
+	else
+		// Check if the vehicle is inside the horizontal acceptance radius
+		return fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
+			    	&& fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_hacc_rad.get();			
+}
+
 bool PrecLand::check_state_conditions(PrecLandState state)
 {
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
@@ -464,11 +582,9 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 		// if we're already in this state, only want to make it invalid if we reached the target but can't see it anymore
 		if (_state == PrecLandState::HorizontalApproach) {
-			if (fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
-			    && fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_hacc_rad.get()) {
+			if (check_hacc_rad(vehicle_local_position)) {
 				// we've reached the position where we last saw the target. If we don't see it now, we need to do something
 				return _target_pose_valid && _target_pose.abs_pos_valid;
-
 			} else {
 				// We've seen the target sometime during horizontal approach.
 				// Even if we don't see it as we're moving towards it, continue approaching last known location
@@ -481,7 +597,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 	case PrecLandState::DescendAboveTarget:
 
-		// if we're already in this state, only leave it if target becomes unusable, don't care about horizontall offset to target
+		// If we're already in this state, only leave it if target becomes unusable, don't care about horizontal offset to target
 		if (_state == PrecLandState::DescendAboveTarget) {
 			// if we're close to the ground, we're more critical of target timeouts so we quickly go into descend
 			if (check_state_conditions(PrecLandState::FinalApproach)) {
@@ -494,8 +610,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		} else {
 			// if not already in this state, need to be above target to enter it
 			return _target_pose_updated && _target_pose.abs_pos_valid
-			       && fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
-			       && fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_hacc_rad.get();
+			       && check_hacc_rad(vehicle_local_position);
 		}
 
 	case PrecLandState::FinalApproach:

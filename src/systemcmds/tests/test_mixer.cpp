@@ -42,8 +42,8 @@
 #include <string.h>
 
 #include <px4_config.h>
-#include <lib/mixer/mixer.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <mixer/mixer.h>
+#include <pwm_limit/pwm_limit.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 #include <px4iofirmware/mixer.h>
@@ -196,16 +196,18 @@ bool MixerTest::loadAllTest()
 			if (strncmp(result->d_name, ".", 1) != 0) {
 
 				char buf[PATH_MAX];
-				(void)strncpy(&buf[0], MIXER_ONBOARD_PATH, sizeof(buf) - 1);
-				/* enforce null termination */
-				buf[sizeof(buf) - 1] = '\0';
-				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH)], "/", 1);
-				(void)strncpy(&buf[strlen(MIXER_ONBOARD_PATH) + 1], result->d_name, sizeof(buf) - strlen(MIXER_ONBOARD_PATH) - 1);
+
+				if (snprintf(buf, PATH_MAX, "%s/%s", MIXER_ONBOARD_PATH, result->d_name) >= PATH_MAX) {
+					PX4_ERR("mixer path too long %s", result->d_name);
+					closedir(dp);
+					return false;
+				}
 
 				bool ret = load_mixer(buf, 0);
 
 				if (!ret) {
 					PX4_ERR("Error testing mixer %s", buf);
+					closedir(dp);
 					return false;
 				}
 			}

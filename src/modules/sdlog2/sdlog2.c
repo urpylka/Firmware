@@ -101,7 +101,6 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/task_stack_info.h>
 
-#include <systemlib/systemlib.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <systemlib/printload.h>
@@ -385,7 +384,7 @@ int sdlog2_main(int argc, char *argv[])
 		struct vehicle_command_s cmd;
 
 		memset(&cmd, 0, sizeof(cmd));
-		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
+		cmd.command = VEHICLE_COMMAND_VEHICLE_CMD_PREFLIGHT_STORAGE;
 		cmd.param1 = -1;
 		cmd.param2 = -1;
 		cmd.param3 = 1;
@@ -398,7 +397,7 @@ int sdlog2_main(int argc, char *argv[])
 		struct vehicle_command_s cmd;
 
 		memset(&cmd, 0, sizeof(cmd));
-		cmd.command = VEHICLE_CMD_PREFLIGHT_STORAGE;
+		cmd.command = VEHICLE_COMMAND_VEHICLE_CMD_PREFLIGHT_STORAGE;
 		cmd.param1 = -1;
 		cmd.param2 = -1;
 		cmd.param3 = 2;
@@ -566,7 +565,9 @@ int open_perf_file(const char* str)
 
 	if (log_name_timestamp && time_ok) {
 		strftime(log_file_name, sizeof(log_file_name), "perf%H_%M_%S.txt", &tt);
-		snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name);
+		if (snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name)) {
+			return -1;
+		}
 
 	} else {
 		unsigned file_number = 1; // start with file log001
@@ -575,7 +576,9 @@ int open_perf_file(const char* str)
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/sess001/log001.txt */
 			snprintf(log_file_name, sizeof(log_file_name), "perf%03u.txt", file_number);
-			snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name);
+			if (snprintf(log_file_path, sizeof(log_file_path), "%s/%s_%s", log_dir, str, log_file_name) >= sizeof(log_file_path)) {
+				return -1;
+			}
 
 			if (!file_exist(log_file_path)) {
 				break;
@@ -865,8 +868,9 @@ int write_version(int fd)
 	};
 
 	/* fill version message and write it */
-	strncpy(log_msg_VER.body.fw_git, px4_firmware_version_string(), sizeof(log_msg_VER.body.fw_git));
-	strncpy(log_msg_VER.body.arch, px4_board_name(), sizeof(log_msg_VER.body.arch));
+	strncpy(log_msg_VER.body.fw_git, px4_firmware_version_string(), sizeof(log_msg_VER.body.fw_git)-1);
+	log_msg_VER.body.fw_git[sizeof(log_msg_VER.body.fw_git)-1] = '\0';
+	strncpy(log_msg_VER.body.arch, px4_board_name(), sizeof(log_msg_VER.body.arch)-1);
 	log_msg_VER.body.arch[sizeof(log_msg_VER.body.arch) - 1] = '\0';
 	return write(fd, &log_msg_VER, sizeof(log_msg_VER));
 }
@@ -2218,7 +2222,7 @@ void handle_command(struct vehicle_command_s *cmd)
 	/* request to set different system mode */
 	switch (cmd->command) {
 
-	case VEHICLE_CMD_PREFLIGHT_STORAGE:
+	case VEHICLE_COMMAND_VEHICLE_CMD_PREFLIGHT_STORAGE:
 		param = (int)(cmd->param3 + 0.5f);
 
 		if (param == 1)	{
@@ -2241,7 +2245,7 @@ void handle_command(struct vehicle_command_s *cmd)
 void handle_status(struct vehicle_status_s *status)
 {
 	// TODO use flag from actuator_armed here?
-	bool armed = status->arming_state == ARMING_STATE_ARMED;
+	bool armed = status->arming_state == VEHICLE_STATUS_ARMING_STATE_ARMED;
 
 	if (armed != flag_system_armed) {
 		flag_system_armed = armed;
