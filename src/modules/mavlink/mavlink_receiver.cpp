@@ -1512,6 +1512,11 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	mavlink_battery_status_t battery_mavlink;
 	mavlink_msg_battery_status_decode(msg, &battery_mavlink);
 
+	if (msg->sysid != mavlink_system.sysid) {
+		// ignore battery status of other system
+		return;
+	}
+
 	battery_status_s battery_status = {};
 	battery_status.timestamp = hrt_absolute_time();
 
