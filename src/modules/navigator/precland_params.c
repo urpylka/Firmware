@@ -173,3 +173,13 @@ PARAM_DEFINE_FLOAT(PLD_FUNNEL_LEA, 0);
  * @group Precision Land
  */
 PARAM_DEFINE_FLOAT(PLD_STATE_TIME, 10);
+
+/**
+ * Send precland info using MAVLink 
+ *
+ * Send MAVLink status texts about the precision land procedure.
+ *
+ * @boolean
+ * @group Precision Land
+ */
+PARAM_DEFINE_INT32(PLD_INFO, 0);

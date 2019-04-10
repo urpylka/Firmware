@@ -57,6 +57,8 @@
 
 #define SEC2USEC 1000000.0f
 
+#define PLD_STATUS_MAVLINK(_level, _text, ...)	if (_param_info.get()) mavlink_vasprintf(_level, _navigator->get_mavlink_log_pub(), _text, ##__VA_ARGS__);
+
 PrecLand::PrecLand(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
@@ -105,6 +107,7 @@ PrecLand::on_activation()
 				_strict_funnel_r_o = _param_funnel_top_rad.get() - _strict_funnel_k * _param_search_alt.get();
 
 				PX4_INFO("Strict precland in a funnel");
+				PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Strict precland: FUNNEL");
 				// PX4_INFO("r(a) = a * %f + %f", (double)_strict_funnel_k, (double)_strict_funnel_r_o);
 			}
 			// Funnel parameters integrity check has failed
@@ -114,6 +117,7 @@ PrecLand::on_activation()
 				_strict_funnel_k = 0;
 
 				PX4_ERR("Invalid strict precland funnel parameters");
+				PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Invalid strict precland funnel parameters");
 			}
 		}
 		else
@@ -122,11 +126,15 @@ PrecLand::on_activation()
 			_strict_funnel_k = 0;
 
 			PX4_INFO("Strict precland in a cylinder");
+			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Strict precland: CYLINDER");
 		}
 	}
 	// Strict precland is disabled
 	else
+	{
 		PX4_INFO("Regular precland");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Regular precland");
+	}
 
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
@@ -141,6 +149,7 @@ PrecLand::on_activation()
 	// Check that the current position setpoint is valid, otherwise land at current position
 	if (!pos_sp_triplet->current.valid) {
 		PX4_WARN("Resetting landing position to current position");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Resetting landing position to current");
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
 		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
@@ -223,6 +232,7 @@ PrecLand::run_state_start()
 		// could not see the target immediately, so just fall back to normal landing
 		if (!switch_to_state_fallback()) {
 			PX4_ERR("Can't switch to search or fallback landing");
+			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to search or fallback landing");
 		}
 	}
 
@@ -243,6 +253,7 @@ PrecLand::run_state_start()
 				if (!switch_to_state_search()) {
 					if (!switch_to_state_fallback()) {
 						PX4_ERR("Can't switch to search or fallback landing");
+						PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to search or fallback landing");
 					}
 				}
 			}
@@ -250,6 +261,7 @@ PrecLand::run_state_start()
 		} else {
 			if (!switch_to_state_fallback()) {
 				PX4_ERR("Can't switch to search or fallback landing");
+				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to search or fallback landing");
 			}
 		}
 	}
@@ -263,6 +275,7 @@ PrecLand::run_state_horizontal_approach()
 	// check if target visible, if not go to start
 	if (!check_state_conditions(PrecLandState::HorizontalApproach)) {
 		PX4_WARN("Lost landing target while landing (horizontal approach).");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Target lost in the horizontal approach");
 
 		// Stay at current position for searching for the landing target
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
@@ -272,6 +285,7 @@ PrecLand::run_state_horizontal_approach()
 		if (!switch_to_state_start()) {
 			if (!switch_to_state_fallback()) {
 				PX4_ERR("Can't switch to fallback landing");
+				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to fallback landing");
 			}
 		}
 
@@ -293,13 +307,15 @@ PrecLand::run_state_horizontal_approach()
 	}
 
 	if (hrt_absolute_time() - _state_start_time > _param_state_timeout.get()*SEC2USEC) {
-		PX4_ERR("Precision landing took too long during horizontal approach phase.");
+		PX4_ERR("Precision landing took too long during horizontal approach phase");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Too long in the horizontal approach phase");
 
 		if (switch_to_state_fallback()) {
 			return;
 		}
 
 		PX4_ERR("Can't switch to fallback landing");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to fallback landing");
 	}
 
 	float x = _target_pose.x_abs;
@@ -328,6 +344,7 @@ PrecLand::run_state_descend_above_target()
 	if (!check_state_conditions(PrecLandState::DescendAboveTarget)) {
 		if (!switch_to_state_final_approach()) {
 			PX4_WARN("Lost landing target while landing (descending).");
+			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Lost landing target while descending");
 
 			// Stay at current position for searching for the target
 			pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
@@ -337,6 +354,7 @@ PrecLand::run_state_descend_above_target()
 			if (!switch_to_state_start()) {
 				if (!switch_to_state_fallback()) {
 					PX4_ERR("Can't switch to fallback landing");
+					PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to fallback landing");
 				}
 			}
 		}
@@ -358,12 +376,14 @@ PrecLand::run_state_descend_above_target()
 			!check_state_conditions(PrecLandState::FinalApproach))
 		{
 			PX4_WARN("Out of the horizontal acceptance radius (strict precland)");
+			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Out of the horizontal acceptance radius");
 
 			// Correct the vehicle position using the horizontal approach step
 			if (!switch_to_state_horizontal_approach())
 			{
 				// Landing target position has been lost
 				PX4_ERR("Can't switch to horizontal approach");
+				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to horizontal approach");
 
 				// No need to do anything else.
 				// Condition check will handle the case on the next iteration.
@@ -418,9 +438,11 @@ PrecLand::run_state_search()
 	// check if search timed out and go to fallback
 	if (hrt_absolute_time() - _state_start_time > _param_search_timeout.get()*SEC2USEC) {
 		PX4_WARN("Search timed out");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Search timed out");
 
 		if (!switch_to_state_fallback()) {
 			PX4_ERR("Can't switch to fallback landing");
+			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to fallback landing");
 		}
 	}
 }
@@ -446,6 +468,7 @@ PrecLand::switch_to_state_start()
 		_state_start_time = hrt_absolute_time();
 
 		PX4_WARN("Precland start state");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Precland start state");
 		return true;
 	}
 
@@ -464,6 +487,7 @@ PrecLand::switch_to_state_horizontal_approach()
 		_state_start_time = hrt_absolute_time();
 
 		PX4_WARN("Precland horizontal approach");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Precland horizontal approach");
 		return true;
 	}
 
@@ -478,6 +502,7 @@ PrecLand::switch_to_state_descend_above_target()
 		_state_start_time = hrt_absolute_time();
 
 		PX4_WARN("Precland descend above target");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Precland descend above target");
 		return true;
 	}
 
@@ -492,6 +517,7 @@ PrecLand::switch_to_state_final_approach()
 		_state_start_time = hrt_absolute_time();
 
 		PX4_WARN("Precland final approach");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Precland final approach");
 		return true;
 	}
 
@@ -501,7 +527,8 @@ PrecLand::switch_to_state_final_approach()
 bool
 PrecLand::switch_to_state_search()
 {
-	PX4_INFO("Climbing to search altitude.");
+	PX4_INFO("Climbing to search altitude");
+	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Climbing to search altitude");
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -519,7 +546,8 @@ PrecLand::switch_to_state_search()
 bool
 PrecLand::switch_to_state_fallback()
 {
-	PX4_WARN("Falling back to normal land.");
+	PX4_WARN("Falling back to normal land");
+	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Falling back to normal land");
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 	pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
