@@ -128,6 +128,8 @@ PrecLand::on_activation()
 			PX4_INFO("Strict precland in a cylinder");
 			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Strict precland: CYLINDER");
 		}
+
+		_strict_stop = false;
 	}
 	// Strict precland is disabled
 	else
@@ -371,16 +373,24 @@ PrecLand::run_state_descend_above_target()
 		// Get the current local position
 		vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
-		// If we are out of the horizontal acceptance radius and over the final approach altitude
-		if (!check_hacc_rad(vehicle_local_position) &&
-			!check_state_conditions(PrecLandState::FinalApproach))
-		{
+		// Target is still visible, but we are close to the final approach altitude
+		if (check_state_conditions(PrecLandState::FinalApproach)) {
+			// Strict precland is not locked yet
+			if (!_strict_stop) {
+				PX4_WARN("Final approach altitude has been reached, strict precland is disabled");
+				PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Strict precland is disabled");
+
+				// Block the strict precland to avoid horizontal approach close to the surface
+				_strict_stop = true;
+			}
+		}
+		// Strict precland is not blocked, we are out of the horizontal acceptance radius and over the final approach altitude
+		else if (!_strict_stop && !check_hacc_rad(vehicle_local_position)) {
 			PX4_WARN("Out of the horizontal acceptance radius (strict precland)");
 			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Out of the horizontal acceptance radius");
 
 			// Correct the vehicle position using the horizontal approach step
-			if (!switch_to_state_horizontal_approach())
-			{
+			if (!switch_to_state_horizontal_approach()) {
 				// Landing target position has been lost
 				PX4_ERR("Can't switch to horizontal approach");
 				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to horizontal approach");

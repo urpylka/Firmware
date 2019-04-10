@@ -125,7 +125,9 @@ private:
 	PrecLandMode _mode{PrecLandMode::Opportunistic};
 
 	float _strict_funnel_k; /** A linear funnel part slope (0 to use cylinder) */
-	float _strict_funnel_r_o;  /** A linear funnel part offset */
+	float _strict_funnel_r_o; /** A linear funnel part offset */
+
+	bool _strict_stop; /** Strict precland stop flag */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::PLD_BTOUT>) _param_timeout,
