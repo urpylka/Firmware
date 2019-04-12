@@ -132,3 +132,16 @@ PARAM_DEFINE_FLOAT(LTEST_SCALE_X, 1.0f);
  * @group Landing target Estimator
  */
 PARAM_DEFINE_FLOAT(LTEST_SCALE_Y, 1.0f);
+
+/**
+ * Landing target estimator
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 2
+ * @group Landing target Estimator
+ * @value 0 Disabled
+ * @value 1 Estimator only
+ * @value 2 IR-Lock
+ */
+PARAM_DEFINE_INT32(LTEST_EN, 0);

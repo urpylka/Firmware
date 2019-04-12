@@ -987,6 +987,12 @@ fi
 		fi
 	fi
 
+	# Landing target estimator
+	if param greater LTEST_EN 0
+	then
+		landing_target_estimator start
+	fi
+
 	sh /etc/init.d/rc.logging
 
 # End of autostart
