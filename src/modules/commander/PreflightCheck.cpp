@@ -60,6 +60,7 @@
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include "PreflightCheck.h"
 #include "health_flag_helper.h"
@@ -684,6 +685,55 @@ out:
 	return success;
 }
 
+static bool rangefinderCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, bool report_fail)
+{
+	int32_t en;
+	int distance_sensor_sub = -1;
+
+	param_get(param_find("SENS_EN_SF0X"), &en);
+	if (en > 0) goto enabled;
+	param_get(param_find("SENS_EN_SF1XX"), &en);
+	if (en > 0) goto enabled;
+	param_get(param_find("SENS_EN_TRANGER"), &en);
+	if (en > 0) goto enabled;
+	param_get(param_find("SENS_EN_TFMINI"), &en);
+	if (en > 0) goto enabled;
+	param_get(param_find("SENS_EN_LEDDAR1"), &en);
+	if (en > 0) goto enabled;
+	param_get(param_find("SENS_EN_MB12XX"), &en);
+	if (en > 0) goto enabled;
+	param_get(param_find("SENS_EN_LL40LS"), &en);
+	if (en > 0) goto enabled;
+
+	goto out;
+
+enabled:
+	distance_sensor_sub = orb_subscribe_multi(ORB_ID(distance_sensor), 0);
+	distance_sensor_s dist;
+
+	if (orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &dist) != PX4_OK) {
+		if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: FAILED TO GET RANGEFINDER DATA");
+		return false;
+	}
+
+	if (hrt_elapsed_time(&dist.timestamp) > 500000) {
+		if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: RANGEFINDER DATA TOO OLD");
+		return false;
+	}
+
+	if (dist.current_distance < dist.min_distance ||
+	    dist.current_distance > dist.max_distance ||
+	    dist.current_distance > 0.5) {
+		if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: BAD RANGEFINDER DATA: %6.3f", (double)dist.current_distance);
+		return false;
+	}
+
+	orb_unsubscribe(distance_sensor_sub);
+
+out:
+	return true;
+}
+
 bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		    vehicle_status_flags_s &status_flags, bool checkGNSS, bool reportFailures, bool prearm,
 		    const hrt_abstime &time_since_boot)
@@ -924,6 +974,11 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		if (!ekf2Check(mavlink_log_pub, status, false, reportFailures && report_ekf_fail && !failed, checkGNSS)) {
 			failed = true;
 		}
+	}
+
+	/* ---- Rangefinder ---- */
+	if (!rangefinderCheck(mavlink_log_pub, status, reportFailures && !failed)) {
+		failed = true;
 	}
 
 	/* Report status */
