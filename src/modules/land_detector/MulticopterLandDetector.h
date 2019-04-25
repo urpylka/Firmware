@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/distance_sensor.h>
 
 using namespace time_literals;
 
@@ -107,6 +108,7 @@ private:
 		param_t freefall_trigger_time;
 		param_t altitude_max;
 		param_t landSpeed;
+		param_t clearance;
 	} _paramHandle{};
 
 	struct {
@@ -121,6 +123,7 @@ private:
 		float freefall_trigger_time;
 		float altitude_max;
 		float landSpeed;
+		float clearance;
 	} _params{};
 
 	int _vehicleLocalPositionSub{-1};
@@ -130,6 +133,7 @@ private:
 	int _sensor_bias_sub{-1};
 	int _vehicle_control_mode_sub{-1};
 	int _battery_sub{-1};
+	int _distance_sensor_sub{-1};
 
 	vehicle_local_position_s				_vehicleLocalPosition {};
 	vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint {};
@@ -138,6 +142,7 @@ private:
 	sensor_bias_s					_sensors {};
 	vehicle_control_mode_s				_control_mode {};
 	battery_status_s						_battery {};
+	distance_sensor_s						_distance_sensor {};
 
 	hrt_abstime _min_trust_start{0};		///< timestamp when minimum trust was applied first
 	hrt_abstime _landed_time{0};
