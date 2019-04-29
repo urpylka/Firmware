@@ -723,7 +723,7 @@ enabled:
 
 	if (dist.current_distance < dist.min_distance ||
 	    dist.current_distance > dist.max_distance ||
-	    dist.current_distance > 0.5) {
+	    dist.current_distance > 0.5f) {
 		if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: BAD RANGEFINDER DATA: %6.3f", (double)dist.current_distance);
 		return false;
 	}
