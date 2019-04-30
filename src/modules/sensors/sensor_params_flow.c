@@ -51,7 +51,7 @@
  *
  * @group Sensors
  */
-PARAM_DEFINE_INT32(SENS_FLOW_ROT, 6);
+PARAM_DEFINE_INT32(SENS_FLOW_ROT, 0);
 
 /**
  * Minimum height above ground when reliant on optical flow.
@@ -66,7 +66,7 @@ PARAM_DEFINE_INT32(SENS_FLOW_ROT, 6);
  * @decimal 1
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(SENS_FLOW_MINHGT, 0.7f);
+PARAM_DEFINE_FLOAT(SENS_FLOW_MINHGT, 0.01f);
 
 /**
  * Maximum height above ground when reliant on optical flow.
@@ -83,7 +83,7 @@ PARAM_DEFINE_FLOAT(SENS_FLOW_MINHGT, 0.7f);
  * @decimal 1
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(SENS_FLOW_MAXHGT, 3.0f);
+PARAM_DEFINE_FLOAT(SENS_FLOW_MAXHGT, 4.0f);
 
 /**
  * Magnitude of maximum angular flow rate reliably measurable by the optical flow sensor.
