@@ -705,13 +705,15 @@ static bool rangefinderCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &ve
 	param_get(param_find("SENS_EN_LL40LS"), &en);
 	if (en > 0) goto enabled;
 
-	goto out;
+	return true;
 
 enabled:
 	distance_sensor_sub = orb_subscribe_multi(ORB_ID(distance_sensor), 0);
 	distance_sensor_s dist;
+	int res = orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &dist);
+	orb_unsubscribe(distance_sensor_sub);
 
-	if (orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &dist) != PX4_OK) {
+	if (res != PX4_OK) {
 		if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: FAILED TO GET RANGEFINDER DATA");
 		return false;
 	}
@@ -728,9 +730,7 @@ enabled:
 		return false;
 	}
 
-	orb_unsubscribe(distance_sensor_sub);
 
-out:
 	return true;
 }
 
