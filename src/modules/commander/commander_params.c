@@ -319,6 +319,20 @@ PARAM_DEFINE_INT32(COM_DISARM_TKO, 0);
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
 /**
+ * Require RTK for arming in mission mode
+ *
+ * The default allows to arm the vehicle without RTK
+ *
+ * @group Commander
+ * @min 0
+ * @max 2
+ * @value 0 Allow arming without RTK
+ * @value 1 Require RTK float for arming
+ * @value 2 Require RTK fixed for arming
+ */
+PARAM_DEFINE_INT32(COM_ARM_RTK, 0);
+
+/**
  * Arm switch is only a button
  *
  * The default uses the arm switch as real switch.

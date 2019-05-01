@@ -730,6 +730,47 @@ enabled:
 		return false;
 	}
 
+	return true;
+}
+
+static bool rtkCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, bool report_fail)
+{
+	if (vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+		// check only in mission mode
+		return true;
+	}
+
+	int32_t com_arm_rtk;
+	param_get(param_find("COM_ARM_RTK"), &com_arm_rtk);
+
+	if (com_arm_rtk == 0) {
+		return true;
+	}
+
+	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	vehicle_gps_position_s gps;
+	int res = orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
+	orb_unsubscribe(gps_sub);
+
+	if (res != PX4_OK) {
+		if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: FAILED TO GET GPS POSITION");
+		return false;
+	}
+
+	if (hrt_elapsed_time(&gps.timestamp) > 500000) {
+		if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS POSITION TOO OLD");
+		return false;
+	}
+
+	if (com_arm_rtk == 1 && gps.fix_type < 5) {
+		if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: NO RTK FLOAT");
+		return false;
+	}
+
+	if (com_arm_rtk == 2 && gps.fix_type < 6) {
+		if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: NO RTK FIXED");
+		return false;
+	}
 
 	return true;
 }
@@ -978,6 +1019,11 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 
 	/* ---- Rangefinder ---- */
 	if (!rangefinderCheck(mavlink_log_pub, status, reportFailures && !failed)) {
+		failed = true;
+	}
+
+	/* RTK */
+	if (!rtkCheck(mavlink_log_pub, status, reportFailures && !failed)) {
 		failed = true;
 	}
 
