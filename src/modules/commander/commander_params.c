@@ -333,6 +333,20 @@ PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 PARAM_DEFINE_INT32(COM_ARM_RTK, 0);
 
 /**
+ * Require GeoFence to be set for arming
+ *
+ * The default allows to arm the vehicle without GeoFence
+ *
+ * @group Commander
+ * @min 0
+ * @max 2
+ * @value 0 Allow arming without GeoFence
+ * @value 1 Require GeoFence to arm in mission mode
+ * @value 2 Require GeoFence to arm in all modes
+ */
+PARAM_DEFINE_INT32(COM_ARM_GEOFENCE, 0);
+
+/**
  * Arm switch is only a button
  *
  * The default uses the arm switch as real switch.
