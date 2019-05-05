@@ -79,6 +79,8 @@ private:
 	 */
 	void		advance_rtl();
 
+	bool		find_closest_rally_point();
+
 	enum RTLState {
 		RTL_STATE_NONE = 0,
 		RTL_STATE_CLIMB,
@@ -91,6 +93,16 @@ private:
 	} _rtl_state{RTL_STATE_NONE};
 
 	bool _rtl_alt_min{false};
+
+	struct RTLPosition {
+		double lat;
+		double lon;
+		float alt;
+		float yaw;
+		uint8_t safe_point_index; ///< 0 = home position
+	};
+
+	RTLPosition _destination;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_RETURN_ALT>) _param_return_alt,
