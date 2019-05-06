@@ -183,3 +183,16 @@ PARAM_DEFINE_FLOAT(PLD_STATE_TIME, 10);
  * @group Precision Land
  */
 PARAM_DEFINE_INT32(PLD_INFO, 0);
+
+/**
+ * Precision land fallback action 
+ *
+ * An action to do if the precision land has failed.
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Land
+ * @value 1 RTL
+ * @group Precision Land
+ */
+PARAM_DEFINE_INT32(PLD_FOAC, 0);

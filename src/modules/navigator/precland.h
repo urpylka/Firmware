@@ -129,6 +129,12 @@ private:
 
 	bool _strict_stop; /** Strict precland stop flag */
 
+	/* Precland fallback actions */
+	enum {
+		PLD_FOAC_LAND = 0,
+		PLD_FOAC_RTL = 1
+	};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::PLD_BTOUT>) _param_timeout,
 		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_hacc_rad,
@@ -142,6 +148,7 @@ private:
 		(ParamFloat<px4::params::PLD_FUNNEL_TR>) _param_funnel_top_rad,
 		(ParamFloat<px4::params::PLD_FUNNEL_LEA>) _param_funnel_le_alt,
 		(ParamFloat<px4::params::PLD_STATE_TIME>) _param_state_timeout,
-		(ParamBool<px4::params::PLD_INFO>) _param_info
+		(ParamBool<px4::params::PLD_INFO>) _param_info,
+		(ParamInt<px4::params::PLD_FOAC>) _param_fallback_action
 	)
 };

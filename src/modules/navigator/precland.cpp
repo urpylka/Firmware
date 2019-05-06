@@ -460,7 +460,7 @@ PrecLand::run_state_search()
 void
 PrecLand::run_state_fallback()
 {
-	// nothing to do, will land
+	// nothing to do, we should be in the other module right now
 }
 
 bool
@@ -556,17 +556,36 @@ PrecLand::switch_to_state_search()
 bool
 PrecLand::switch_to_state_fallback()
 {
-	PX4_WARN("Falling back to normal land");
-	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Falling back to normal land");
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
-	pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
-	pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
-	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
-	_navigator->set_position_setpoint_triplet_updated();
-
 	_state = PrecLandState::Fallback;
 	_state_start_time = hrt_absolute_time();
+
+	vehicle_command_s vcmd = {};
+
+	switch(_param_fallback_action.get())
+	{
+	case PrecLand::PLD_FOAC_LAND:
+		vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
+
+		PX4_WARN("Falling back to normal land");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Falling back to normal land");
+		break;
+	case PrecLand::PLD_FOAC_RTL:
+		vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
+
+		PX4_WARN("Falling back to RTL");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Falling back to RTL");
+		break;
+	default:
+		// Falling back to land if the action is unknown
+		vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
+
+		PX4_WARN("Unknown fallback action!");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Unknown fallback action!");
+		break;
+	}
+
+	_navigator->publish_vehicle_cmd(&vcmd);
+
 	return true;
 }
 
