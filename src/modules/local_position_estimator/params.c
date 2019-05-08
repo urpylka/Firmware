@@ -22,7 +22,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_OFF_Z, 0.0f);
  * @max 10.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_FLW_SCALE, 1.0f);
+PARAM_DEFINE_FLOAT(LPE_FLW_SCALE, 1.3f);
 
 /**
  * Optical flow rotation (roll/pitch) noise gain
@@ -33,7 +33,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_SCALE, 1.0f);
  * @max 10.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_FLW_R, 0.1f);
+PARAM_DEFINE_FLOAT(LPE_FLW_R, 7.0f);
 
 /**
  * Optical flow angular velocity noise gain
@@ -44,7 +44,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_R, 0.1f);
  * @max 10.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_FLW_RR, 0.0f);
+PARAM_DEFINE_FLOAT(LPE_FLW_RR, 7.0f);
 
 /**
  * Optical flow minimum quality threshold
@@ -54,7 +54,7 @@ PARAM_DEFINE_FLOAT(LPE_FLW_RR, 0.0f);
  * @max 255
  * @decimal 0
  */
-PARAM_DEFINE_INT32(LPE_FLW_QMIN, 10);
+PARAM_DEFINE_INT32(LPE_FLW_QMIN, 150);
 
 /**
  * Sonar z standard deviation.
@@ -229,7 +229,7 @@ PARAM_DEFINE_FLOAT(LPE_EPV_MAX, 5.0f);
  * @max 0.1
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(LPE_VIS_DELAY, 0.0f);
+PARAM_DEFINE_FLOAT(LPE_VIS_DELAY, 0.1f);
 
 /**
  * Vision xy standard deviation.
@@ -251,7 +251,7 @@ PARAM_DEFINE_FLOAT(LPE_VIS_XY, 0.1f);
  * @max 100
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(LPE_VIS_Z, 0.1f);
+PARAM_DEFINE_FLOAT(LPE_VIS_Z, 0.5f);
 
 /**
  * Vicon position standard deviation.
@@ -462,4 +462,4 @@ PARAM_DEFINE_FLOAT(LPE_LT_COV, 0.0001f);
  * @bit 6  flow gyro compensation
  * @bit 7  fuse baro
  */
-PARAM_DEFINE_INT32(LPE_FUSION, 86);
+PARAM_DEFINE_INT32(LPE_FUSION, 145);
