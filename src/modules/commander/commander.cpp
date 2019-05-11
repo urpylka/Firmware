@@ -1470,6 +1470,7 @@ Commander::run()
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool main_state_changed = false;
+	bool offboard_control_mode_changed = true;
 	bool failsafe_old = false;
 
 	bool have_taken_off_since_arming = false;
@@ -1624,6 +1625,7 @@ Commander::run()
 
 		if (updated) {
 			orb_copy(ORB_ID(offboard_control_mode), offboard_control_mode_sub, &offboard_control_mode);
+			offboard_control_mode_changed = true;
 		}
 
 		if (offboard_control_mode.timestamp != 0 &&
@@ -2636,9 +2638,10 @@ Commander::run()
 		}
 
 		// TODO handle mode changes by commands
-		if (main_state_changed || nav_state_changed) {
+		if (main_state_changed || nav_state_changed || offboard_control_mode_changed) {
 			status_changed = true;
 			main_state_changed = false;
+			offboard_control_mode_changed = false;
 		}
 
 		/* publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags) at 1 Hz or immediately when changed */
