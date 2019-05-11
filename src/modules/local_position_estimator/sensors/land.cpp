@@ -42,6 +42,11 @@ void BlockLocalPositionEstimator::landCorrect()
 
 	if (landMeasure(y) != OK) { return; }
 
+	if (!(_sensorTimeout & SENSOR_VISION) || !(_sensorTimeout & SENSOR_MOCAP)) {
+		// Don't fuse land detector, if we have vision or mocap
+		return;
+	}
+
 	// measurement matrix
 	Matrix<float, n_y_land, n_x> C;
 	C.setZero();
