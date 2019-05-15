@@ -2105,6 +2105,21 @@ Mavlink::task_main(int argc, char *argv[])
 
 	case MAVLINK_MODE_CONFIG:
 		// Enable a number of interesting streams we want via USB
+		configure_stream("ALTITUDE", 10.0f);
+		configure_stream("ATTITUDE", 10.0f);
+		configure_stream("ATTITUDE_TARGET", 10.0f);
+		configure_stream("DISTANCE_SENSOR", 10.0f);
+		configure_stream("ESTIMATOR_STATUS", 1.0f);
+		configure_stream("EXTENDED_SYS_STATE", 1.0f);
+		configure_stream("GLOBAL_POSITION_INT", 10.0f);
+		configure_stream("GPS_RAW_INT", 1.0f);
+		configure_stream("HOME_POSITION", 0.5f);
+		configure_stream("RC_CHANNELS", 10.0f);
+		configure_stream("MANUAL_CONTROL", 5.0f);
+		configure_stream("SYS_STATUS", 1.0f);
+		configure_stream("SYSTEM_TIME", 1.0f);
+		configure_stream("TIMESYNC", 10.0f);
+		/*
 		configure_stream("ACTUATOR_CONTROL_TARGET0", 30.0f);
 		configure_stream("ADSB_VEHICLE");
 		configure_stream("ALTITUDE", 10.0f);
@@ -2139,6 +2154,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("VFR_HUD", 20.0f);
 		configure_stream("VISION_POSITION_ESTIMATE", 10.0f);
 		configure_stream("WIND_COV", 10.0f);
+		*/
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:
