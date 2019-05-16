@@ -119,7 +119,7 @@ void BlockLocalPositionEstimator::visionCorrect()
 	Matrix<float, n_y_vision, 1> r = y - C * x0;
 
 	// fault detection
-	float beta = (r.transpose() * (S_I * r))(0, 0);
+	/*float beta = (r.transpose() * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_vision]) {
 		if (!(_sensorFault & SENSOR_VISION)) {
@@ -127,7 +127,7 @@ void BlockLocalPositionEstimator::visionCorrect()
 			_sensorFault |= SENSOR_VISION;
 		}
 
-	} else if (_sensorFault & SENSOR_VISION) {
+	} else*/ if (_sensorFault & SENSOR_VISION) {
 		_sensorFault &= ~SENSOR_VISION;
 		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision position OK");
 	}
