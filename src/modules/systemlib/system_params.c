@@ -278,3 +278,13 @@ PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
+
+/**
+ * Control if the Clever defaults should be applied
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 99999
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_CLEVER_DEFS, 0);
