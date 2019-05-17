@@ -207,6 +207,26 @@ PrecLand::on_active()
 		run_state_search();
 		break;
 
+	case PrecLandState::ActiveSearchReset:
+		run_state_asearch_reset();
+		break;
+
+	case PrecLandState::ActiveSearchStart:
+		run_state_asearch_start();
+		break;
+
+	case PrecLandState::ActiveSearchNewCircle:
+		run_state_asearch_new_circle();
+		break;
+
+	case PrecLandState::ActiveSearch:
+		run_state_asearch();
+		break;
+
+	case PrecLandState::ActiveSearchReturn:
+		run_state_asearch_return();
+		break;
+
 	case PrecLandState::Fallback:
 		run_state_fallback();
 		break;
@@ -450,9 +470,138 @@ PrecLand::run_state_search()
 		PX4_WARN("Search timed out");
 		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Search timed out");
 
+		if (_param_asearch_enabled.get()) {
+			if (!switch_to_state_asearch_reset()) {
+				PX4_ERR("Can't reset an active search");
+				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't reset an active search");
+			}
+			else
+				return;
+		}
+		
 		if (!switch_to_state_fallback()) {
 			PX4_ERR("Can't switch to fallback landing");
 			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to fallback landing");
+		}
+	}
+}
+
+void
+PrecLand::run_state_asearch_reset()
+{
+	if (!switch_to_state_asearch_start()) {
+		PX4_ERR("Can't start an active search");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't start an active search");
+
+		if (!switch_to_state_fallback()) {
+			PX4_ERR("Can't switch to a fallback");
+			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to a fallback");
+		}
+	}
+}
+
+void
+PrecLand::run_state_asearch_start()
+{
+	if (!switch_to_state_asearch_new_circle()) {
+		PX4_ERR("Can't start a first circle");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't start a new circle");
+
+		if (!switch_to_state_fallback()) {
+			PX4_ERR("Can't switch to a fallback");
+			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to a fallback");
+		}
+	}
+}
+
+void
+PrecLand::run_state_asearch_new_circle()
+{
+	if (check_state_conditions(PrecLandState::HorizontalApproach) && !switch_to_state_horizontal_approach())
+		return;
+
+	if (check_state_conditions(PrecLandState::ActiveSearch)) {
+		if (!switch_to_state_asearch()) {
+			PX4_ERR("Can't switch to an active search");
+			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to active search");
+
+			if (!switch_to_state_fallback()) {
+				PX4_ERR("Can't switch to a fallback");
+				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to a fallback");
+			}
+		}
+	}
+}
+
+void
+PrecLand::run_state_asearch()
+{
+	if (check_state_conditions(PrecLandState::HorizontalApproach) && !switch_to_state_horizontal_approach())
+		return;
+
+	if (_asearch_phi >= 2 * (float)M_PI) {
+		PX4_INFO("Active search iteration finished");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Active search iteration finished");
+
+		_asearch_radius += _param_asearch_cc_step.get();
+
+		if (!switch_to_state_asearch_new_circle()) {
+			PX4_WARN("Final circle radius reached");
+			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Final circle radius reached");
+
+			if (!switch_to_state_asearch_return()) {
+				PX4_ERR("Can't start a return");
+				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't start a return");
+
+				if (!switch_to_state_fallback()) {
+					PX4_ERR("Can't switch to a fallback");
+					PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to a fallback");
+				}
+			}
+		}
+	}
+	else if (isnan(_asearch_target_x) || check_state_conditions(PrecLandState::ActiveSearch))
+	{
+		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+		_asearch_target_x = _asearch_radius * cos(_asearch_phi);
+		_asearch_target_y = _asearch_radius * sin(_asearch_phi);
+
+		map_projection_reproject(&_asearch_ref, _asearch_target_x, _asearch_target_y, &pos_sp_triplet->current.lat,
+			&pos_sp_triplet->current.lon);
+
+		_navigator->set_position_setpoint_triplet_updated();
+
+		_asearch_phi += _asearch_phi_step;
+	}
+}
+
+void
+PrecLand::run_state_asearch_return()
+{
+	if (check_state_conditions(PrecLandState::HorizontalApproach) && !switch_to_state_horizontal_approach())
+		return;
+
+	if (check_state_conditions(PrecLandState::ActiveSearchReturn)) {
+		_asearch_cnt++;
+
+		if (!check_state_conditions(PrecLandState::ActiveSearchStart)) {
+			PX4_ERR("Too many active search attempts");
+			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Too many active search attempts");
+		}
+		else
+		{
+			if (switch_to_state_asearch_start())
+				return;
+			else {
+				PX4_ERR("Failed to start an active search");
+				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Failed to start an active search");
+			}	
+		}
+
+		if (!switch_to_state_fallback()) {
+			PX4_ERR("Can't switch to a fallback");
+			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to a fallback");
 		}
 	}
 }
@@ -554,6 +703,119 @@ PrecLand::switch_to_state_search()
 }
 
 bool
+PrecLand::switch_to_state_asearch_reset()
+{
+	if (!check_state_conditions(PrecLandState::ActiveSearchReset))
+		return false;
+
+	PX4_INFO("Starting an active search reset");
+	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Starting an active search reset");
+
+	_asearch_cnt = 0;
+
+	_state = PrecLandState::ActiveSearchReset;
+	_state_start_time = hrt_absolute_time();
+	return true;
+}
+
+bool
+PrecLand::switch_to_state_asearch_start()
+{
+	if (_param_asearch_cc_step.get() > _param_asearch_final_radius.get()) {
+		PX4_ERR("Concentric circles radius step is too big");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Concentric circles radius step is too big");
+
+		return false;
+	}
+
+	if (_param_asearch_cc_step.get() < _param_asearch_acc_rad.get()) {
+		PX4_ERR("Circle radius step is less than an acceptance radius");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Too low circle radius step");
+
+		return false;
+	}
+
+	if (_param_asearch_setpoint_step.get() < _param_asearch_acc_rad.get()) {
+		PX4_ERR("Setpoint step is less than an acceptance radius");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Too low setpoint step");
+
+		return false;
+	}
+
+	_asearch_cnt = 1;
+	_asearch_radius = _param_asearch_cc_step.get();
+
+	PX4_INFO("Starting an active search");
+	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Starting an active search");
+
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	map_projection_init(&_asearch_ref, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
+
+	_state = PrecLandState::ActiveSearchStart;
+	_state_start_time = hrt_absolute_time();
+	return true;
+}
+
+bool
+PrecLand::switch_to_state_asearch_new_circle()
+{
+	if (!check_state_conditions(PrecLandState::ActiveSearchNewCircle))
+		return false;
+
+	PX4_INFO("Starting a new active search circle");
+	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Starting a new active search circle");
+
+	_asearch_phi_step = 2 * asin(_param_asearch_setpoint_step.get() / (2 * _asearch_radius));
+
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	_asearch_target_x = _asearch_radius;
+	_asearch_target_y = 0;
+
+	map_projection_reproject(&_asearch_ref, _asearch_radius, 0, &pos_sp_triplet->current.lat, &pos_sp_triplet->current.lon);
+	
+	_navigator->set_position_setpoint_triplet_updated();
+
+	_state = PrecLandState::ActiveSearchNewCircle;
+	_state_start_time = hrt_absolute_time();
+	return true;
+}
+
+bool
+PrecLand::switch_to_state_asearch()
+{
+	PX4_INFO("Active search");
+	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Active search");
+
+	_asearch_target_x = NAN;
+	_asearch_phi = 0;
+
+	_state = PrecLandState::ActiveSearch;
+	_state_start_time = hrt_absolute_time();
+	return true;
+}
+
+bool
+PrecLand::switch_to_state_asearch_return()
+{
+	PX4_INFO("Return to the active search start position");
+	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Return to the active search start position");
+
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	map_projection_reproject(&_asearch_ref, 0, 0, &pos_sp_triplet->current.lat, &pos_sp_triplet->current.lon);
+
+	_asearch_target_x = 0;
+	_asearch_target_y = 0;
+	
+	_navigator->set_position_setpoint_triplet_updated();
+
+	_state = PrecLandState::ActiveSearchReturn;
+	_state_start_time = hrt_absolute_time();
+	return true;
+}
+
+bool
 PrecLand::switch_to_state_fallback()
 {
 	_state = PrecLandState::Fallback;
@@ -627,6 +889,18 @@ bool PrecLand::check_hacc_rad(vehicle_local_position_s *vehicle_local_position)
 			    	&& fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_hacc_rad.get();			
 }
 
+bool PrecLand::check_setpoint_reached(struct map_projection_reference_s *ref, float target_x, float target_y, float acc_rad)
+{
+	vehicle_global_position_s *vehicle_global_position = _navigator->get_global_position();
+
+	float cur_x, cur_y;
+
+	map_projection_project(ref, vehicle_global_position->lat, vehicle_global_position->lon,
+		&cur_x, &cur_y);
+
+	return (fabs(target_x - cur_x) < acc_rad) && (fabs(target_y - cur_y) < acc_rad);
+}
+
 bool PrecLand::check_state_conditions(PrecLandState state)
 {
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
@@ -677,6 +951,34 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 	case PrecLandState::Search:
 		return true;
 
+	case PrecLandState::ActiveSearchReset:
+		return true;
+
+	case PrecLandState::ActiveSearchStart:
+		return _asearch_cnt <= _param_max_asearches.get();
+
+	case PrecLandState::ActiveSearchNewCircle:
+		if (_state == PrecLandState::ActiveSearchStart)
+			return _asearch_radius >= _param_asearch_setpoint_step.get();
+		else if (_state == PrecLandState::ActiveSearch)
+			return _asearch_radius <= _param_asearch_final_radius.get();
+		else
+			return false;
+
+	case PrecLandState::ActiveSearch:
+		if ((_state == PrecLandState::ActiveSearchNewCircle) || (_state == PrecLandState::ActiveSearch))
+			return check_setpoint_reached(&_asearch_ref, _asearch_target_x, _asearch_target_y,
+				_param_asearch_acc_rad.get());
+		else
+			return false;
+
+	case PrecLandState::ActiveSearchReturn:
+		if (_state == PrecLandState::ActiveSearchReturn)
+			return check_setpoint_reached(&_asearch_ref, _asearch_target_x, _asearch_target_y,
+				_param_asearch_acc_rad.get());
+		else
+			return false;
+		
 	case PrecLandState::Fallback:
 		return true;
 

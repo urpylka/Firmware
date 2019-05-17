@@ -55,6 +55,11 @@ enum class PrecLandState {
 	DescendAboveTarget, // Stay over landing target while descending
 	FinalApproach, // Final landing approach, even without landing target
 	Search, // Search for landing target
+	ActiveSearchReset, // Reset active search attempts counter
+	ActiveSearchStart, // Start active search
+	ActiveSearchNewCircle, // Move the vehicle to the start position in a circle
+	ActiveSearch, // Perform an active search around the circle
+	ActiveSearchReturn, // Return to the initial search position
 	Fallback, // Fallback landing method
 	Done // Done landing
 };
@@ -84,9 +89,15 @@ private:
 	void run_state_descend_above_target();
 	void run_state_final_approach();
 	void run_state_search();
+	void run_state_asearch_reset();
+	void run_state_asearch_start();
+	void run_state_asearch_new_circle();
+	void run_state_asearch();
+	void run_state_asearch_return();
 	void run_state_fallback();
 
 	bool check_hacc_rad(vehicle_local_position_s *vehicle_local_position);
+	bool check_setpoint_reached(struct map_projection_reference_s *ref, float target_x, float target_y, float acc_rad);
 
 	// attempt to switch to a different state. Returns true if state change was successful, false otherwise
 	bool switch_to_state_start();
@@ -94,6 +105,11 @@ private:
 	bool switch_to_state_descend_above_target();
 	bool switch_to_state_final_approach();
 	bool switch_to_state_search();
+	bool switch_to_state_asearch_reset();
+	bool switch_to_state_asearch_start();
+	bool switch_to_state_asearch_new_circle();
+	bool switch_to_state_asearch();
+	bool switch_to_state_asearch_return();
 	bool switch_to_state_fallback();
 	bool switch_to_state_done();
 
@@ -135,6 +151,16 @@ private:
 		PLD_FOAC_RTL = 1
 	};
 
+	float _asearch_radius{0};
+	struct map_projection_reference_s _asearch_ref;
+	float _asearch_target_x{NAN};
+	float _asearch_target_y{NAN};
+	float _asearch_phi{0};
+	float _asearch_phi_step{0};
+	int _asearch_cnt{0}; /**< counter of how many times we had to search for the landing target actively */
+
+	bool detect_target();
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::PLD_BTOUT>) _param_timeout,
 		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_hacc_rad,
@@ -149,6 +175,12 @@ private:
 		(ParamFloat<px4::params::PLD_FUNNEL_LEA>) _param_funnel_le_alt,
 		(ParamFloat<px4::params::PLD_STATE_TIME>) _param_state_timeout,
 		(ParamBool<px4::params::PLD_INFO>) _param_info,
-		(ParamInt<px4::params::PLD_FOAC>) _param_fallback_action
+		(ParamInt<px4::params::PLD_FOAC>) _param_fallback_action,
+		(ParamBool<px4::params::PLD_ASEN>) _param_asearch_enabled,
+		(ParamFloat<px4::params::PLD_ASFR>) _param_asearch_final_radius,
+		(ParamFloat<px4::params::PLD_ASAR>) _param_asearch_acc_rad,
+		(ParamFloat<px4::params::PLD_ASCS>) _param_asearch_cc_step,
+		(ParamFloat<px4::params::PLD_ASSS>) _param_asearch_setpoint_step,
+		(ParamInt<px4::params::PLD_MAX_ASRCH>) _param_max_asearches
 	)
 };
