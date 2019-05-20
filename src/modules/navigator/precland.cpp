@@ -471,14 +471,17 @@ PrecLand::run_state_search()
 		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Search timed out");
 
 		if (_param_asearch_enabled.get()) {
+			// Active search is enabled, reset an active search (reset the attempts counter)
 			if (!switch_to_state_asearch_reset()) {
 				PX4_ERR("Can't reset an active search");
 				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't reset an active search");
 			}
 			else
+				// Failed to start an active search, falling back
 				return;
 		}
 		
+		// Start a fall back
 		if (!switch_to_state_fallback()) {
 			PX4_ERR("Can't switch to fallback landing");
 			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to fallback landing");
@@ -489,10 +492,12 @@ PrecLand::run_state_search()
 void
 PrecLand::run_state_asearch_reset()
 {
+	// The active search counter has been reset during the switch procedure, start a new active search
 	if (!switch_to_state_asearch_start()) {
 		PX4_ERR("Can't start an active search");
 		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't start an active search");
 
+		// Start a fall back
 		if (!switch_to_state_fallback()) {
 			PX4_ERR("Can't switch to a fallback");
 			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to a fallback");
@@ -503,10 +508,12 @@ PrecLand::run_state_asearch_reset()
 void
 PrecLand::run_state_asearch_start()
 {
+	// Initialisation has been completed during the switch procedure, start a new circle
 	if (!switch_to_state_asearch_new_circle()) {
 		PX4_ERR("Can't start a first circle");
 		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't start a new circle");
 
+		// Start a fall back
 		if (!switch_to_state_fallback()) {
 			PX4_ERR("Can't switch to a fallback");
 			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to a fallback");
@@ -517,14 +524,18 @@ PrecLand::run_state_asearch_start()
 void
 PrecLand::run_state_asearch_new_circle()
 {
+	// Check if the target is visible, start the horizontal approach
 	if (check_state_conditions(PrecLandState::HorizontalApproach) && !switch_to_state_horizontal_approach())
 		return;
 
+	// We have reach a start position for the new circle
 	if (check_state_conditions(PrecLandState::ActiveSearch)) {
+		// Start moving around the circle
 		if (!switch_to_state_asearch()) {
 			PX4_ERR("Can't switch to an active search");
 			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to active search");
 
+			// Start a fallback
 			if (!switch_to_state_fallback()) {
 				PX4_ERR("Can't switch to a fallback");
 				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to a fallback");
@@ -536,23 +547,29 @@ PrecLand::run_state_asearch_new_circle()
 void
 PrecLand::run_state_asearch()
 {
+	// Check if the target is visible, start the horizontal approach
 	if (check_state_conditions(PrecLandState::HorizontalApproach) && !switch_to_state_horizontal_approach())
 		return;
 
+	// Full circle
 	if (_asearch_phi >= 2 * (float)M_PI) {
-		PX4_INFO("Active search iteration finished");
-		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Active search iteration finished");
+		PX4_INFO("Active search circle finished");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Active search circle finished");
 
+		// Increase the circle radius
 		_asearch_radius += _param_asearch_cc_step.get();
 
+		// Start a new circle
 		if (!switch_to_state_asearch_new_circle()) {
 			PX4_WARN("Final circle radius reached");
 			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Final circle radius reached");
 
+			// Return to the starting position
 			if (!switch_to_state_asearch_return()) {
-				PX4_ERR("Can't start a return");
-				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't start a return");
+				PX4_ERR("Can't start a return state");
+				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't start a return state");
 
+				// Fall back
 				if (!switch_to_state_fallback()) {
 					PX4_ERR("Can't switch to a fallback");
 					PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to a fallback");
@@ -560,18 +577,23 @@ PrecLand::run_state_asearch()
 			}
 		}
 	}
+	// Target coordinates are invalid or the target setpoint is reached
 	else if (isnan(_asearch_target_x) || check_state_conditions(PrecLandState::ActiveSearch))
 	{
 		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
+		// Get a new coordinates from a polar formula: r = R(phi)
 		_asearch_target_x = _asearch_radius * cos(_asearch_phi);
 		_asearch_target_y = _asearch_radius * sin(_asearch_phi);
 
+		// Convert local NED coordinates to the global coordinates
 		map_projection_reproject(&_asearch_ref, _asearch_target_x, _asearch_target_y, &pos_sp_triplet->current.lat,
 			&pos_sp_triplet->current.lon);
 
+		// Set a new setpoint
 		_navigator->set_position_setpoint_triplet_updated();
 
+		// Move around the circle
 		_asearch_phi += _asearch_phi_step;
 	}
 }
@@ -579,18 +601,23 @@ PrecLand::run_state_asearch()
 void
 PrecLand::run_state_asearch_return()
 {
+	// Check if the target is visible, start the horizontal approach
 	if (check_state_conditions(PrecLandState::HorizontalApproach) && !switch_to_state_horizontal_approach())
 		return;
 
+	// We have returned to the start position
 	if (check_state_conditions(PrecLandState::ActiveSearchReturn)) {
+		// Increase the active search attempts counter
 		_asearch_cnt++;
 
+		// Check if we exceeded the search attempts
 		if (!check_state_conditions(PrecLandState::ActiveSearchStart)) {
 			PX4_ERR("Too many active search attempts");
 			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Too many active search attempts");
 		}
 		else
 		{
+			// Restart the active search
 			if (switch_to_state_asearch_start())
 				return;
 			else {
@@ -599,6 +626,7 @@ PrecLand::run_state_asearch_return()
 			}	
 		}
 
+		// Start a fall back
 		if (!switch_to_state_fallback()) {
 			PX4_ERR("Can't switch to a fallback");
 			PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't switch to a fallback");
@@ -705,12 +733,14 @@ PrecLand::switch_to_state_search()
 bool
 PrecLand::switch_to_state_asearch_reset()
 {
+	// Check if it's possible to reset an active search from the current state
 	if (!check_state_conditions(PrecLandState::ActiveSearchReset))
 		return false;
 
 	PX4_INFO("Starting an active search reset");
 	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Starting an active search reset");
 
+	// Reset the active search attempts counter
 	_asearch_cnt = 0;
 
 	_state = PrecLandState::ActiveSearchReset;
@@ -722,8 +752,8 @@ bool
 PrecLand::switch_to_state_asearch_start()
 {
 	if (_param_asearch_cc_step.get() > _param_asearch_final_radius.get()) {
-		PX4_ERR("Concentric circles radius step is too big");
-		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Concentric circles radius step is too big");
+		PX4_ERR("Concentric circles radius step is too hight");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Concentric circles radius step is too hight");
 
 		return false;
 	}
@@ -742,13 +772,16 @@ PrecLand::switch_to_state_asearch_start()
 		return false;
 	}
 
+	// Init the active search attempts counter
 	_asearch_cnt = 1;
+	// First circle radius
 	_asearch_radius = _param_asearch_cc_step.get();
 
 	PX4_INFO("Starting an active search");
 	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Starting an active search");
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	// Init the global coordinates reference by the current coordinates
 	map_projection_init(&_asearch_ref, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
 	_state = PrecLandState::ActiveSearchStart;
@@ -759,21 +792,26 @@ PrecLand::switch_to_state_asearch_start()
 bool
 PrecLand::switch_to_state_asearch_new_circle()
 {
+	// Check if it's possible to start a new from the current state
 	if (!check_state_conditions(PrecLandState::ActiveSearchNewCircle))
 		return false;
 
 	PX4_INFO("Starting a new active search circle");
 	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Starting a new active search circle");
 
+	// Calculate a new polar coordinates step as a horde between two set setpoints: phi = 2 * asin(m / (2 * R))
 	_asearch_phi_step = 2 * asin(_param_asearch_setpoint_step.get() / (2 * _asearch_radius));
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
+	// Set an starting circle point
 	_asearch_target_x = _asearch_radius;
 	_asearch_target_y = 0;
 
+	// Convert local NED coordinates to the global coordinates
 	map_projection_reproject(&_asearch_ref, _asearch_radius, 0, &pos_sp_triplet->current.lat, &pos_sp_triplet->current.lon);
 	
+	// Set a new setpoint
 	_navigator->set_position_setpoint_triplet_updated();
 
 	_state = PrecLandState::ActiveSearchNewCircle;
@@ -787,7 +825,9 @@ PrecLand::switch_to_state_asearch()
 	PX4_INFO("Active search");
 	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Active search");
 
+	// Invalidate a target coordinates (to force a setpoint update)
 	_asearch_target_x = NAN;
+	// Set an initial polar coordinate
 	_asearch_phi = 0;
 
 	_state = PrecLandState::ActiveSearch;
@@ -803,11 +843,14 @@ PrecLand::switch_to_state_asearch_return()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
+	// Get the initial global coordinates from the reference
 	map_projection_reproject(&_asearch_ref, 0, 0, &pos_sp_triplet->current.lat, &pos_sp_triplet->current.lon);
 
+	// Reset the target coordinates
 	_asearch_target_x = 0;
 	_asearch_target_y = 0;
 	
+	// Set a new setpoint
 	_navigator->set_position_setpoint_triplet_updated();
 
 	_state = PrecLandState::ActiveSearchReturn;

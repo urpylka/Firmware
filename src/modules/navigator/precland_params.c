@@ -200,7 +200,7 @@ PARAM_DEFINE_INT32(PLD_FOAC, 0);
 /**
  * Precision land active search enabled
  *
- * Search the landing target actively if the target is not visible.
+ * Search the landing target actively if the target is not visible after regular search.
  *
  * @boolean
  * @group Precision Land
@@ -210,11 +210,11 @@ PARAM_DEFINE_INT32(PLD_ASEN, 0);
 /**
  * Precision land active search final radius
  *
- * An active search radius to stop searching.
+ * Maximum active search radius.
  *
  * @unit m
  * @min 0.5
- * @max 3
+ * @max 5
  * @decimal 2
  * @increment 0.1
  * @group Precision Land
@@ -224,11 +224,11 @@ PARAM_DEFINE_FLOAT(PLD_ASFR, 1);
 /**
  * Precision land active search acceptance radius
  *
- * An active search acceptance radius.
+ * An active search setpoints active radius.
  *
  * @unit m
  * @min 0.1
- * @max 1
+ * @max 1.5
  * @decimal 2
  * @increment 0.1
  * @group Precision Land
@@ -261,7 +261,7 @@ PARAM_DEFINE_FLOAT(PLD_ASCS, 0.2);
  * @increment 0.1
  * @group Precision Land
  */
-PARAM_DEFINE_FLOAT(PLD_ASSS, 2.0);
+PARAM_DEFINE_FLOAT(PLD_ASPS, 2.0);
 
 /**
  * Maximum number of active search search attempts

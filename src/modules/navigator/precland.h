@@ -151,15 +151,14 @@ private:
 		PLD_FOAC_RTL = 1
 	};
 
-	float _asearch_radius{0};
-	struct map_projection_reference_s _asearch_ref;
-	float _asearch_target_x{NAN};
-	float _asearch_target_y{NAN};
-	float _asearch_phi{0};
+	float _asearch_radius{0}; /**< current concentric circle radius */
+	struct map_projection_reference_s _asearch_ref; /**< reference to the global center of Search state */
+	float _asearch_target_x{NAN}; /**< target x to reach (NED, from the center of Search state) */
+	float _asearch_target_y{NAN}; /**< target y to reach (NED, from the center of Search state) */
+	float _asearch_phi{0}; /**< current phi for the polar coordinate system */
+	/**< phi step for the polar coordinate system (calculates for every concentric circle to provide a constant velocity) */
 	float _asearch_phi_step{0};
 	int _asearch_cnt{0}; /**< counter of how many times we had to search for the landing target actively */
-
-	bool detect_target();
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::PLD_BTOUT>) _param_timeout,
@@ -180,7 +179,7 @@ private:
 		(ParamFloat<px4::params::PLD_ASFR>) _param_asearch_final_radius,
 		(ParamFloat<px4::params::PLD_ASAR>) _param_asearch_acc_rad,
 		(ParamFloat<px4::params::PLD_ASCS>) _param_asearch_cc_step,
-		(ParamFloat<px4::params::PLD_ASSS>) _param_asearch_setpoint_step,
+		(ParamFloat<px4::params::PLD_ASPS>) _param_asearch_setpoint_step,
 		(ParamInt<px4::params::PLD_MAX_ASRCH>) _param_max_asearches
 	)
 };
