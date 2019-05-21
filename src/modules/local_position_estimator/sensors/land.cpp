@@ -42,13 +42,18 @@ void BlockLocalPositionEstimator::landCorrect()
 
 	if (landMeasure(y) != OK) { return; }
 
+	if (!(_sensorTimeout & SENSOR_VISION) || !(_sensorTimeout & SENSOR_MOCAP)) {
+		// Don't fuse land detector, if we have vision or mocap
+		return;
+	}
+
 	// measurement matrix
 	Matrix<float, n_y_land, n_x> C;
 	C.setZero();
 	// y = -(z - tz)
 	C(Y_land_vx, X_vx) = 1;
 	C(Y_land_vy, X_vy) = 1;
-	C(Y_land_agl, X_z) = -1;// measured altitude, negative down dir.
+	C(Y_land_agl, X_vz) = -1;// measured altitude, negative down dir.
 	C(Y_land_agl, X_tz) = 1;// measured altitude, negative down dir.
 
 	// use parameter covariance

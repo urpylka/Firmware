@@ -319,6 +319,9 @@ then
 	fi
 	unset AUTOCNF
 
+	# Apply Clever defaults
+	sh /etc/init.d/rc.clever
+
 	set IO_PRESENT no
 
 	#

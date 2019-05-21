@@ -188,6 +188,26 @@ int ver_main(int argc, char *argv[])
 					printf("FW version: %u.%u.%u %x (%u)\n", major, minor, patch, type, fwver);
 				}
 
+				if (show_all) {
+					const char *git_branch = px4_firmware_git_branch();
+
+					if (git_branch && git_branch[0]) {
+						printf("FW git-branch: %s\n", git_branch);
+					}
+
+					const char *git_tag = px4_firmware_git_tag_string();
+
+					if (git_tag && git_tag[0]) {
+						printf("FW git tag: %s\n", git_tag);
+					}
+
+					const char *ecl_git_hash = px4_ecl_lib_version_string();
+
+					if (ecl_git_hash && ecl_git_hash[0]) {
+						printf("ECL git-hash: %s\n", ecl_git_hash);
+					}
+
+				}
 
 				fwver = px4_os_version();
 				major = (fwver >> (8 * 3)) & 0xFF;

@@ -488,13 +488,13 @@ void BlockLocalPositionEstimator::update()
 		}
 	}
 
-	if (_altOriginInitialized) {
-		// update all publications if possible
-		publishLocalPos();
-		publishEstimatorStatus();
-		_pub_innov.get().timestamp = _timeStamp;
-		_pub_innov.update();
+	// update all publications if possible
+	publishLocalPos();
+	publishEstimatorStatus();
+	_pub_innov.get().timestamp = _timeStamp;
+	_pub_innov.update();
 
+	if (_altOriginInitialized) {
 		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _fake_origin.get())) {
 			publishGlobalPos();
 		}
