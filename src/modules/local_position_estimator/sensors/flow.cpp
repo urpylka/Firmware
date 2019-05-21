@@ -34,7 +34,7 @@ void BlockLocalPositionEstimator::flowInit()
 int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 {
 	// check for sane pitch/roll
-	if (_eul(0) > 0.5f || _eul(1) > 0.5f) {
+	if (fabs(_eul(0)) > 0.5f || fabs(_eul(1)) > 0.5f) {
 		return -1;
 	}
 
