@@ -583,8 +583,8 @@ PrecLand::run_state_asearch()
 		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 		// Get a new coordinates from a polar formula: r = R(phi)
-		_asearch_target_x = _asearch_radius * cos(_asearch_phi);
-		_asearch_target_y = _asearch_radius * sin(_asearch_phi);
+		_asearch_target_x = _asearch_radius * cosf(_asearch_phi);
+		_asearch_target_y = _asearch_radius * sinf(_asearch_phi);
 
 		// Convert local NED coordinates to the global coordinates
 		map_projection_reproject(&_asearch_ref, _asearch_target_x, _asearch_target_y, &pos_sp_triplet->current.lat,
@@ -941,7 +941,7 @@ bool PrecLand::check_setpoint_reached(struct map_projection_reference_s *ref, fl
 	map_projection_project(ref, vehicle_global_position->lat, vehicle_global_position->lon,
 		&cur_x, &cur_y);
 
-	return (fabs(target_x - cur_x) < acc_rad) && (fabs(target_y - cur_y) < acc_rad);
+	return (fabsf(target_x - cur_x) < acc_rad) && (fabsf(target_y - cur_y) < acc_rad);
 }
 
 bool PrecLand::check_state_conditions(PrecLandState state)
