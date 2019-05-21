@@ -36,7 +36,7 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
 
 	// check for sane pitch/roll
-	if (euler.phi() > 0.5f || euler.theta() > 0.5f) {
+	if (fabs(euler.phi()) > 0.5f || fabs(euler.theta()) > 0.5f) {
 		return -1;
 	}
 
