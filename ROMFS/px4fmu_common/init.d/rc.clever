@@ -17,7 +17,7 @@ else
 	param set LPE_FLW_SCALE 1.0
 	param set LPE_FLW_R 0.2
 	param set LPE_FLW_RR 0.0
-	param set LPE_FLW_QMIN 10
+	param set LPE_FLW_QMIN 60
 	param set LPE_VIS_DELAY 0.0
 	param set LPE_VIS_Z 0.1
 	param set LPE_FUSION 86
