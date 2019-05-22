@@ -59,6 +59,11 @@
 
 #define PLD_STATUS_MAVLINK(_level, _text, ...)	if (_param_info.get()) mavlink_vasprintf(_level, _navigator->get_mavlink_log_pub(), _text, ##__VA_ARGS__);
 
+// px4 builder has problems with math.h when building SITL
+#ifdef CONFIG_ARCH_BOARD_SITL
+using std::isnan;
+#endif
+
 PrecLand::PrecLand(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
