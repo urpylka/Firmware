@@ -208,9 +208,9 @@ PARAM_DEFINE_INT32(PLD_FOAC, 0);
 PARAM_DEFINE_INT32(PLD_ASEN, 0);
 
 /**
- * Precision land active search final radius
+ * Precision land active search limiting radius
  *
- * Maximum active search radius.
+ * Limiting active search radius.
  *
  * @unit m
  * @min 0.5
@@ -219,7 +219,7 @@ PARAM_DEFINE_INT32(PLD_ASEN, 0);
  * @increment 0.1
  * @group Precision Land
  */
-PARAM_DEFINE_FLOAT(PLD_ASFR, 1);
+PARAM_DEFINE_FLOAT(PLD_ASLR, 2);
 
 /**
  * Precision land active search acceptance radius
@@ -247,7 +247,7 @@ PARAM_DEFINE_FLOAT(PLD_ASAR, 0.2);
  * @increment 0.1
  * @group Precision Land
  */
-PARAM_DEFINE_FLOAT(PLD_ASCS, 0.2);
+PARAM_DEFINE_FLOAT(PLD_ASCS, 1);
 
 /**
  * Precision land active search setpoint step
@@ -261,7 +261,7 @@ PARAM_DEFINE_FLOAT(PLD_ASCS, 0.2);
  * @increment 0.1
  * @group Precision Land
  */
-PARAM_DEFINE_FLOAT(PLD_ASPS, 2.0);
+PARAM_DEFINE_FLOAT(PLD_ASPS, 0.2);
 
 /**
  * Maximum number of active search search attempts

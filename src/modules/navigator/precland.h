@@ -176,7 +176,7 @@ private:
 		(ParamBool<px4::params::PLD_INFO>) _param_info,
 		(ParamInt<px4::params::PLD_FOAC>) _param_fallback_action,
 		(ParamBool<px4::params::PLD_ASEN>) _param_asearch_enabled,
-		(ParamFloat<px4::params::PLD_ASFR>) _param_asearch_final_radius,
+		(ParamFloat<px4::params::PLD_ASLR>) _param_asearch_limiting_radius,
 		(ParamFloat<px4::params::PLD_ASAR>) _param_asearch_acc_rad,
 		(ParamFloat<px4::params::PLD_ASCS>) _param_asearch_cc_step,
 		(ParamFloat<px4::params::PLD_ASPS>) _param_asearch_setpoint_step,

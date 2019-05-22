@@ -511,7 +511,7 @@ PrecLand::run_state_asearch_start()
 	// Initialisation has been completed during the switch procedure, start a new circle
 	if (!switch_to_state_asearch_new_circle()) {
 		PX4_ERR("Can't start a first circle");
-		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't start a new circle");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Can't start a first circle");
 
 		// Start a fall back
 		if (!switch_to_state_fallback()) {
@@ -552,7 +552,7 @@ PrecLand::run_state_asearch()
 		return;
 
 	// Full circle
-	if (_asearch_phi >= 2 * (float)M_PI) {
+	if (_asearch_phi > 2 * (float)M_PI) {
 		PX4_INFO("Active search circle finished");
 		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Active search circle finished");
 
@@ -561,8 +561,8 @@ PrecLand::run_state_asearch()
 
 		// Start a new circle
 		if (!switch_to_state_asearch_new_circle()) {
-			PX4_WARN("Final circle radius reached");
-			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Final circle radius reached");
+			PX4_WARN("Final circle has been finished");
+			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Final circle has been finished");
 
 			// Return to the starting position
 			if (!switch_to_state_asearch_return()) {
@@ -751,7 +751,7 @@ PrecLand::switch_to_state_asearch_reset()
 bool
 PrecLand::switch_to_state_asearch_start()
 {
-	if (_param_asearch_cc_step.get() > _param_asearch_final_radius.get()) {
+	if (_param_asearch_cc_step.get() > _param_asearch_limiting_radius.get()) {
 		PX4_ERR("Concentric circles radius step is too hight");
 		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Concentric circles radius step is too hight");
 
@@ -1004,7 +1004,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		if (_state == PrecLandState::ActiveSearchStart)
 			return _asearch_radius >= _param_asearch_setpoint_step.get();
 		else if (_state == PrecLandState::ActiveSearch)
-			return _asearch_radius <= _param_asearch_final_radius.get();
+			return _asearch_radius <= _param_asearch_limiting_radius.get();
 		else
 			return false;
 
