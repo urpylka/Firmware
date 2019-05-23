@@ -54,6 +54,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_pub_gpos(ORB_ID(vehicle_global_position), -1, &getPublications()),
 	_pub_est_status(ORB_ID(estimator_status), -1, &getPublications()),
 	_pub_innov(ORB_ID(ekf2_innovations), -1, &getPublications()),
+	_pub_gain(ORB_ID(kalman_gain), -1, &getPublications()),
 
 	// map projection
 	_map_ref(),
@@ -629,6 +630,9 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 	_pub_est_status.get().pos_vert_accuracy = _pub_gpos.get().epv;
 
 	_pub_est_status.update();
+
+	_pub_gain.get().timestamp = _timeStamp;
+	_pub_gain.update();
 }
 
 void BlockLocalPositionEstimator::publishGlobalPos()

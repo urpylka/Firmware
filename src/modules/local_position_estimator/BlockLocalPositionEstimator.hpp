@@ -24,6 +24,7 @@
 #include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/kalman_gain.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -268,6 +269,7 @@ private:
 	uORB::Publication<vehicle_global_position_s> _pub_gpos;
 	uORB::Publication<estimator_status_s> _pub_est_status;
 	uORB::Publication<ekf2_innovations_s> _pub_innov;
+	uORB::Publication<kalman_gain_s> _pub_gain;
 
 	// map projection
 	struct map_projection_reference_s _map_ref;

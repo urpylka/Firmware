@@ -614,6 +614,7 @@ void Logger::add_default_topics()
 	add_topic("ekf2_innovations", 200);
 	add_topic("esc_status", 250);
 	add_topic("estimator_status", 200);
+	add_topic("kalman_gain", 200);
 	add_topic("home_position");
 	add_topic("input_rc", 200);
 	add_topic("iridiumsbd_status");
@@ -622,7 +623,7 @@ void Logger::add_default_topics()
 	add_topic("mission");
 	add_topic("mission_result");
 	add_topic("optical_flow", 50);
-	add_topic("ping");
+	// add_topic("ping");
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("rate_ctrl_status", 30);
 	add_topic("safety");

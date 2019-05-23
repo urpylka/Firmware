@@ -138,6 +138,10 @@ void BlockLocalPositionEstimator::visionCorrect()
 		Vector<float, n_x> dx = K * r;
 		_x += dx;
 		_P -= K * C * _P;
+
+		_pub_gain.get().vision_gain[0] = K(X_vx, Y_vision_x);
+		_pub_gain.get().vision_gain[1] = K(X_vy, Y_vision_y);
+		_pub_gain.get().vision_gain[2] = K(X_vy, Y_vision_z);
 	}
 }
 
