@@ -598,8 +598,14 @@ PrecLand::run_state_asearch()
 		// Set a new setpoint
 		_navigator->set_position_setpoint_triplet_updated();
 
-		// Move around the circle
-		_asearch_phi += _asearch_phi_step;
+		// We are reaching the end of the circle and acceptance radius allows to do the last step smaller than requested
+		// m = 2 * R * sin(phi / 2)
+		if ((_asearch_phi + _asearch_phi_step > 2 * (float)M_PI) &&
+				(2 * _asearch_radius * sinf((2 * (float)M_PI - _asearch_phi) / 2) >= _param_asearch_acc_rad.get()))
+			_asearch_phi = 2 * (float)M_PI;
+		else
+			// Move around the circle
+			_asearch_phi += _asearch_phi_step;
 	}
 }
 
@@ -777,8 +783,6 @@ PrecLand::switch_to_state_asearch_start()
 		return false;
 	}
 
-	// Init the active search attempts counter
-	_asearch_cnt = 1;
 	// First circle radius
 	_asearch_radius = _param_asearch_cc_step.get();
 
@@ -804,7 +808,8 @@ PrecLand::switch_to_state_asearch_new_circle()
 	PX4_INFO("Starting a new active search circle");
 	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Starting a new active search circle");
 
-	// Calculate a new polar coordinates step as a horde between two set setpoints: phi = 2 * asin(m / (2 * R))
+	// Calculate a new polar coordinates step as a horde between two set setpoints
+	// phi = 2 * asin(m / (2 * R))
 	_asearch_phi_step = 2 * asin(_param_asearch_setpoint_step.get() / (2 * _asearch_radius));
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -1003,7 +1008,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		return true;
 
 	case PrecLandState::ActiveSearchStart:
-		return _asearch_cnt <= _param_max_asearches.get();
+		return _asearch_cnt < _param_max_asearches.get();
 
 	case PrecLandState::ActiveSearchNewCircle:
 		if (_state == PrecLandState::ActiveSearchStart)
