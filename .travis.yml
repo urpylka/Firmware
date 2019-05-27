@@ -35,6 +35,7 @@ stage: Build
 
 script:
  - ./Tools/docker_run.sh make ${BUILD_TARGET}
+ - cp ./build/nuttx_${BUILD_TARGET}/parameters.xml ./build/nuttx_${BUILD_TARGET}/parameters_${BUILD_TARGET}.xml
 
 jobs:
   include:
@@ -67,6 +68,7 @@ deploy:
   file_glob: true
   file:
     - build/**/*px4fmu*.px4
+    - build/**/parameters*.xml
 # FIXME: pack .elf files into a zip archive
 #    - build/**/*px4fmu*.elf
   skip_cleanup: true
