@@ -306,7 +306,21 @@ MavlinkMissionManager::send_mission_count(uint8_t sysid, uint8_t compid, uint16_
 	wpc.count = count;
 	wpc.mission_type = mission_type;
 
-	mavlink_msg_mission_count_send_struct(_mavlink->get_channel(), &wpc);
+	// Tere is a bug into a Flir Duo camera, connected to a Pixhawk: if it receives this message, it stops all mavlink communications
+	// (it looks like something crashes inside). The code below is for sending msg to mavlink instances except the one, 
+	// to which Flir Duo is connected.
+	int flirduo_telem_channel = 1; // Default is telem2
+
+	param_t param_handle;
+	param_handle = param_find("FLIRDUO_TELEM");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &flirduo_telem_channel);
+	}
+
+	if (_mavlink->get_channel() != flirduo_telem_channel){
+		mavlink_msg_mission_count_send_struct(_mavlink->get_channel(), &wpc);
+	}
 
 	PX4_DEBUG("WPM: Send MISSION_COUNT %u to ID %u, mission type=%i", wpc.count, wpc.target_system, mission_type);
 }

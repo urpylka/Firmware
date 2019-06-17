@@ -139,3 +139,16 @@ PARAM_DEFINE_INT32(TRIG_PINS, 56);
  * @group Camera trigger
  */
 PARAM_DEFINE_FLOAT(TRIG_DISTANCE, 25.0f);
+
+/**
+ * Telem channel to which Flir Duo is connected
+ * 
+ * 0 - /dev/ttyS1 (telem1) 
+ * 1 - /dev/ttyS2 (telem2) - default
+ * 2 - /dev/ttyACM0 (usb)
+ *
+ * @min 0
+ * @max 2
+ * @group Camera trigger
+ */
+PARAM_DEFINE_INT32(FLIRDUO_TELEM, 1);
