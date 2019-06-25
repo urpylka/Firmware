@@ -5,12 +5,6 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-if ! ver hwcmp INTEL_AEROFC_V1
-then
-	# Start MAVLink on the USB port
-	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-fi
-
 #
 # SYS_COMPANION transition support. Can be removed after the next release (currently at 1.8.0)
 #
