@@ -1,33 +1,80 @@
+# Build and autotest script for PX4 Firmware
+# http://travis-ci.org
+
+sudo: required
+dist: xenial
+services:
+  - docker
+
 language: cpp
 
 git:
   depth: 100
   submodules: false
 
-matrix:
-  fast_finish: true
-  include:
-    - os: linux
-      dist: xenial
-      if: branch = coverity_scan
+cache:
+  ccache: true
 
 before_install:
     - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
-install:
-    - export PATH=$HOME/.local/bin:$PATH
-    - pip install --user --upgrade pip
-    - pip install --user -r Tools/setup/requirements.txt
+env:
+ - BUILD_TARGET=px4_fmu-v2_default
+ - BUILD_TARGET=px4_fmu-v2_lpe
+ - BUILD_TARGET=px4_fmu-v3_default
+ - BUILD_TARGET=px4_fmu-v4_default
+ - BUILD_TARGET=px4_fmu-v5_default
+
+stage: Build
 
 script:
-    - make
+ - ./Tools/docker_run.sh make ${BUILD_TARGET}
 
-addons:
-  coverity_scan:
-    project:
-      name: "PX4/Firmware"
-      description: "Build submitted via Travis CI"
-    notification_email: ci@px4.io
-    build_command_prepend: "make distclean"
-    build_command: "make px4_sitl_default"
-    branch_pattern: coverity_scan
+jobs:
+  include:
+    - stage: Tests
+      name: Self-tests
+      script: PX4_DOCKER_REPO="px4io/px4-dev-simulation:2019-06-24" ./Tools/docker_run.sh make tests
+    - stage: Tests
+      name: Mission test
+      script: PX4_DOCKER_REPO="px4io/px4-dev-ros-kinetic:2019-06-24" ./Tools/docker_run.sh make tests_mission
+    - stage: Tests
+      name: Offboard test
+      script: PX4_DOCKER_REPO="px4io/px4-dev-ros-kinetic:2019-06-24" ./Tools/docker_run.sh make tests_offboard
+    - stage: Annotate
+      name: Auto-generate changelog
+      language: python
+      python: 3.6
+      install:
+        - pip install GitPython PyGithub
+      script:
+        - python ./gen_changelog.py
+
+stages:
+  - Tests
+  - Build
+  - Annotate
+
+deploy:
+  provider: releases
+  api_key: ${GITHUB_OAUTH_TOKEN}
+  file_glob: true
+  file:
+    - build/**/*px4fmu*.px4
+    - build/**/*px4fmu*.elf
+  skip_cleanup: true
+  on:
+    tags: true
+  prerelease: true
+  draft: true
+  name: ${TRAVIS_TAG}
+
+#addons:
+#  coverity_scan:
+#    project:
+#      name: "PX4/Firmware"
+#      description: "Build submitted via Travis CI"
+#    notification_email: ci@px4.io
+#    build_command_prepend: "make distclean"
+#    build_command: "make posix_sitl_default"
+#    branch_pattern: coverity_scan
