@@ -39,6 +39,7 @@
  * Based on the hmc5883 driver.
  */
 
+#include <px4_time.h>
 #include "lis3mdl.h"
 
 LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rotation) :
@@ -99,6 +100,10 @@ LIS3MDL::~LIS3MDL()
 	/* make sure we are truly inactive */
 	stop();
 
+	if (_mag_topic != nullptr) {
+		orb_unadvertise(_mag_topic);
+	}
+
 	if (_reports != nullptr) {
 		delete _reports;
 	}
@@ -142,7 +147,7 @@ LIS3MDL::calibrate(struct file *file_pointer, unsigned enable)
 		goto out;
 	}
 
-	usleep(20000);
+	px4_usleep(20000);
 
 	/* discard 10 samples to let the sensor settle */
 	for (uint8_t i = 0; i < num_samples; i++) {
@@ -207,7 +212,7 @@ LIS3MDL::calibrate(struct file *file_pointer, unsigned enable)
 		goto out;
 	}
 
-	usleep(60000);
+	px4_usleep(60000);
 
 	/* discard 10 samples to let the sensor settle */
 	for (uint8_t i = 0; i < num_samples; i++) {
@@ -281,25 +286,9 @@ out:
 	set_range(4);
 	set_default_register_values();
 
-	usleep(20000);
+	px4_usleep(20000);
 
 	return ret;
-}
-
-int
-LIS3MDL::check_calibration()
-{
-	bool offset_valid = (check_offset() == OK);
-	bool scale_valid  = (check_scale() == OK);
-
-	if (_calibrated != (offset_valid && scale_valid)) {
-		PX4_WARN("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
-			 (offset_valid) ? "" : "offset invalid");
-		_calibrated = (offset_valid && scale_valid);
-	}
-
-	/* return 0 if calibrated, 1 else */
-	return !_calibrated;
 }
 
 int
@@ -372,7 +361,6 @@ LIS3MDL::collect()
 
 	new_mag_report.timestamp = hrt_absolute_time();
 	new_mag_report.error_count = perf_event_count(_comms_errors);
-	new_mag_report.range_ga = _range_ga;
 	new_mag_report.scaling = _range_scale;
 	new_mag_report.device_id = _device_id.devid;
 
@@ -530,12 +518,6 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return PX4_OK;
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
@@ -576,46 +558,15 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return PX4_OK;
-		}
-
 	case SENSORIOCRESET:
 		return reset();
-
-	case MAGIOCSSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return ioctl(file_pointer, SENSORIOCSPOLLRATE, arg);
-
-	case MAGIOCGSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return 1000000 / TICK2USEC(_measure_ticks);
 
 	case MAGIOCSRANGE:
 		return set_range(arg);
 
-	case MAGIOCGRANGE:
-		return _range_ga;
-
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (struct mag_calibration_s *)arg, sizeof(_scale));
-		/* check calibration, but not actually return an error */
-		(void)check_calibration();
 		return 0;
 
 	case MAGIOCGSCALE:
@@ -623,16 +574,11 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 		memcpy((struct mag_calibration_s *)arg, &_scale, sizeof(_scale));
 		return 0;
 
-
 	case MAGIOCCALIBRATE:
 		return calibrate(file_pointer, arg);
 
 	case MAGIOCEXSTRAP:
 		return set_excitement(arg);
-
-	case MAGIOCSELFTEST:
-		return check_calibration();
-
 
 	case MAGIOCGEXTERNAL:
 		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
@@ -742,7 +688,7 @@ LIS3MDL::read(struct file *file_pointer, char *buffer, size_t buffer_len)
 		}
 
 		/* wait for it to complete */
-		usleep(LIS3MDL_CONVERSION_INTERVAL);
+		px4_usleep(LIS3MDL_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (collect() != OK) {

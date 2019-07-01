@@ -183,8 +183,10 @@ private:
 	param_t			_p_interval;
 	param_t			_p_distance;
 	param_t			_p_interface;
+	param_t 		_p_cam_cap_fback;
 
 	trigger_mode_t		_trigger_mode;
+	int32_t _cam_cap_fback;
 
 	camera_interface_mode_t	_camera_interface_mode;
 	CameraInterface		*_camera_interface;  ///< instance of camera interface
@@ -251,6 +253,7 @@ CameraTrigger::CameraTrigger() :
 	_trigger_pub(nullptr),
 	_cmd_ack_pub(nullptr),
 	_trigger_mode(TRIGGER_MODE_NONE),
+	_cam_cap_fback(0),
 	_camera_interface_mode(CAMERA_INTERFACE_MODE_GPIO),
 	_camera_interface(nullptr)
 {
@@ -269,12 +272,14 @@ CameraTrigger::CameraTrigger() :
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_mode = param_find("TRIG_MODE");
 	_p_interface = param_find("TRIG_INTERFACE");
+	_p_cam_cap_fback = param_find("CAM_CAP_FBACK");
 
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interval, &_interval);
 	param_get(_p_distance, &_distance);
 	param_get(_p_mode, (int32_t *)&_trigger_mode);
 	param_get(_p_interface, (int32_t *)&_camera_interface_mode);
+	param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
 
 	switch (_camera_interface_mode) {
 #ifdef __PX4_NUTTX
@@ -315,7 +320,13 @@ CameraTrigger::CameraTrigger() :
 
 	// Advertise critical publishers here, because we cannot advertise in interrupt context
 	struct camera_trigger_s trigger = {};
-	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
+
+	if (!_cam_cap_fback) {
+		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
+
+	} else {
+		_trigger_pub = orb_advertise(ORB_ID(camera_trigger_secondary), &trigger);
+	}
 
 }
 
@@ -483,20 +494,12 @@ CameraTrigger::stop()
 void
 CameraTrigger::test()
 {
-	struct vehicle_command_s cmd = {
-		.timestamp = hrt_absolute_time(),
-		.param5 = 1.0f,
-		.param6 = 0.0f,
-		.param1 = 0.0f,
-		.param2 = 0.0f,
-		.param3 = 0.0f,
-		.param4 = 0.0f,
-		.param7 = 0.0f,
-		.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL
-	};
+	vehicle_command_s vcmd = {};
+	vcmd.timestamp = hrt_absolute_time();
+	vcmd.param5 = 1.0;
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
 
-	orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-	(void)orb_unadvertise(pub);
+	orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 }
 
 void
@@ -722,16 +725,12 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 	// Command ACK handling
 	if (updated && need_ack) {
-		vehicle_command_ack_s command_ack = {
-			.timestamp = 0,
-			.result_param2 = 0,
-			.command = cmd.command,
-			.result = (uint8_t)cmd_result,
-			.from_external = false,
-			.result_param1 = 0,
-			.target_system = cmd.source_system,
-			.target_component = cmd.source_component
-		};
+		vehicle_command_ack_s command_ack = {};
+		command_ack.timestamp = hrt_absolute_time();
+		command_ack.command = cmd.command;
+		command_ack.result = (uint8_t)cmd_result;
+		command_ack.target_system = cmd.source_system;
+		command_ack.target_component = cmd.source_component;
 
 		if (trig->_cmd_ack_pub == nullptr) {
 			trig->_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
@@ -739,7 +738,6 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 		} else {
 			orb_publish(ORB_ID(vehicle_command_ack), trig->_cmd_ack_pub, &command_ack);
-
 		}
 	}
 
@@ -774,8 +772,14 @@ CameraTrigger::engage(void *arg)
 	trigger.timestamp_utc = (uint64_t) tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
 
 	trigger.seq = trig->_trigger_seq;
+	trigger.feedback = false;
 
-	orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
+	if (!trig->_cam_cap_fback) {
+		orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
+
+	} else {
+		orb_publish(ORB_ID(camera_trigger_secondary), trig->_trigger_pub, &trigger);
+	}
 
 	// increment frame count
 	trig->_trigger_seq++;
@@ -898,4 +902,3 @@ int camera_trigger_main(int argc, char *argv[])
 
 	return 0;
 }
-

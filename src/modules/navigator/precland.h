@@ -83,6 +83,9 @@ public:
 	PrecLandMode get_mode() { return _mode; };
 
 private:
+
+	void updateParams() override;
+
 	// run the control loop for each state
 	void run_state_start();
 	void run_state_horizontal_approach();
@@ -161,14 +164,12 @@ private:
 	int _asearch_cnt{0}; /**< counter of how many times we had to search for the landing target actively */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::PLD_BTOUT>) _param_timeout,
-		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_hacc_rad,
-		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_final_approach_alt,
-		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_search_alt,
-		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_search_timeout,
-		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_max_searches,
-		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_acceleration_hor,
-		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_xy_vel_cruise,
+		(ParamFloat<px4::params::PLD_BTOUT>) _param_pld_btout,
+		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_pld_hacc_rad,
+		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_pld_fappr_alt,
+		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_pld_srch_alt,
+		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_pld_srch_tout,
+		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch,
 		(ParamBool<px4::params::PLD_STRICT>) _param_strict,
 		(ParamFloat<px4::params::PLD_FUNNEL_TR>) _param_funnel_top_rad,
 		(ParamFloat<px4::params::PLD_FUNNEL_LEA>) _param_funnel_le_alt,
@@ -182,4 +183,11 @@ private:
 		(ParamFloat<px4::params::PLD_ASPS>) _param_asearch_setpoint_step,
 		(ParamInt<px4::params::PLD_MAX_ASRCH>) _param_max_asearches
 	)
+
+	// non-navigator parameters
+	param_t	_handle_param_acceleration_hor{PARAM_INVALID};
+	param_t	_handle_param_xy_vel_cruise{PARAM_INVALID};
+	float	_param_acceleration_hor{0.0f};
+	float	_param_xy_vel_cruise{0.0f};
+
 };

@@ -13,3 +13,4 @@ uint8 id
 uint8 base_mode
 uint8 system_status
 uint32 custom_mode
+uint64 timestamp	# time since system start (microseconds)

@@ -6,3 +6,4 @@ float32 alt # meters, AMSL
 
 float32 yaw # radians
 bool yaw_valid
+uint64 timestamp	# time since system start (microseconds)

@@ -60,7 +60,7 @@
 #define PLD_STATUS_MAVLINK(_level, _text, ...)	if (_param_info.get()) mavlink_vasprintf(_level, _navigator->get_mavlink_log_pub(), _text, ##__VA_ARGS__);
 
 // px4 builder has problems with math.h when building SITL
-#ifdef CONFIG_ARCH_BOARD_SITL
+#ifndef isnan
 using std::isnan;
 #endif
 
@@ -68,6 +68,10 @@ PrecLand::PrecLand(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
 {
+	_handle_param_acceleration_hor = param_find("MPC_ACC_HOR");
+	_handle_param_xy_vel_cruise = param_find("MPC_XY_CRUISE");
+
+	updateParams();
 }
 
 void
@@ -89,19 +93,19 @@ PrecLand::on_activation()
 		if (_param_funnel_top_rad.get() > 0)
 		{
 			// Check if the funnel geometry is correct
-			if (_param_funnel_top_rad.get() > _param_hacc_rad.get() && 
-				_param_funnel_le_alt.get() >= _param_final_approach_alt.get() &&
-				_param_funnel_le_alt.get() < _param_search_alt.get())
+			if (_param_funnel_top_rad.get() > _param_pld_hacc_rad.get() &&
+				_param_funnel_le_alt.get() >= _param_pld_fappr_alt.get() &&
+				_param_funnel_le_alt.get() < _param_pld_srch_alt.get())
 			{
 				/* Calculate funnel linear part slope from two points
 				* 	k = (r_t - r_h) / (a_s - a_b), where:
 				*		r_t - a top funnel linear part radius,
 				*		r_h - a bottom funnel linear part radius (a horizontal acceptance radius)
 				*		a_s - a top funnel height (a search altitude),
-				*		a_b - a bottom funnel linear part height. 
+				*		a_b - a bottom funnel linear part height.
 				*/
-				_strict_funnel_k = (_param_funnel_top_rad.get() - _param_hacc_rad.get()) /
-					(_param_search_alt.get() - _param_funnel_le_alt.get());
+				_strict_funnel_k = (_param_funnel_top_rad.get() - _param_pld_hacc_rad.get()) /
+					(_param_pld_srch_alt.get() - _param_funnel_le_alt.get());
 
 				/* Calculate funnel linear part offset from the top point
 				* 	r_o = r_t + k * a_s, where:
@@ -109,7 +113,7 @@ PrecLand::on_activation()
 				*		k - a funnel linear part slope,
 				*		a_s - a top funnel height (a search altitude)
 				*/
-				_strict_funnel_r_o = _param_funnel_top_rad.get() - _strict_funnel_k * _param_search_alt.get();
+				_strict_funnel_r_o = _param_funnel_top_rad.get() - _strict_funnel_k * _param_pld_srch_alt.get();
 
 				PX4_INFO("Strict precland in a funnel");
 				PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Strict precland: FUNNEL");
@@ -168,7 +172,6 @@ PrecLand::on_activation()
 	_last_slewrate_time = 0;
 
 	switch_to_state_start();
-
 }
 
 void
@@ -182,7 +185,7 @@ PrecLand::on_active()
 		_target_pose_valid = true;
 	}
 
-	if ((hrt_elapsed_time(&_target_pose.timestamp) / 1e6f) > _param_timeout.get()) {
+	if ((hrt_elapsed_time(&_target_pose.timestamp) / 1e6f) > _param_pld_btout.get()) {
 		_target_pose_valid = false;
 	}
 
@@ -248,6 +251,20 @@ PrecLand::on_active()
 }
 
 void
+PrecLand::updateParams()
+{
+	ModuleParams::updateParams();
+
+	if (_handle_param_acceleration_hor != PARAM_INVALID) {
+		param_get(_handle_param_acceleration_hor, &_param_acceleration_hor);
+	}
+
+	if (_handle_param_xy_vel_cruise != PARAM_INVALID) {
+		param_get(_handle_param_xy_vel_cruise, &_param_xy_vel_cruise);
+	}
+}
+
+void
 PrecLand::run_state_start()
 {
 	// check if target visible and go to horizontal approach
@@ -274,7 +291,7 @@ PrecLand::run_state_start()
 		}
 
 		// if we don't see the target after 1 second, search for it
-		if (_param_search_timeout.get() > 0) {
+		if (_param_pld_srch_tout.get() > 0) {
 
 			if (hrt_absolute_time() - _point_reached_time > 2000000) {
 				if (!switch_to_state_search()) {
@@ -471,7 +488,7 @@ PrecLand::run_state_search()
 	}
 
 	// check if search timed out and go to fallback
-	if (hrt_absolute_time() - _state_start_time > _param_search_timeout.get()*SEC2USEC) {
+	if (hrt_absolute_time() - _state_start_time > _param_pld_srch_tout.get()*SEC2USEC) {
 		PX4_WARN("Search timed out");
 		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Search timed out");
 
@@ -485,7 +502,7 @@ PrecLand::run_state_search()
 				// Failed to start an active search, falling back
 				return;
 		}
-		
+
 		// Start a fall back
 		if (!switch_to_state_fallback()) {
 			PX4_ERR("Can't switch to fallback landing");
@@ -634,7 +651,7 @@ PrecLand::run_state_asearch_return()
 			else {
 				PX4_ERR("Failed to start an active search");
 				PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Failed to start an active search");
-			}	
+			}
 		}
 
 		// Start a fall back
@@ -730,7 +747,7 @@ PrecLand::switch_to_state_search()
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->current.alt = vehicle_local_position->ref_alt + _param_search_alt.get();
+	pos_sp_triplet->current.alt = vehicle_local_position->ref_alt + _param_pld_srch_alt.get();
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	_navigator->set_position_setpoint_triplet_updated();
 
@@ -820,7 +837,7 @@ PrecLand::switch_to_state_asearch_new_circle()
 
 	// Convert local NED coordinates to the global coordinates
 	map_projection_reproject(&_asearch_ref, _asearch_radius, 0, &pos_sp_triplet->current.lat, &pos_sp_triplet->current.lon);
-	
+
 	// Set a new setpoint
 	_navigator->set_position_setpoint_triplet_updated();
 
@@ -859,7 +876,7 @@ PrecLand::switch_to_state_asearch_return()
 	// Reset the target coordinates
 	_asearch_target_x = 0;
 	_asearch_target_y = 0;
-	
+
 	// Set a new setpoint
 	_navigator->set_position_setpoint_triplet_updated();
 
@@ -925,21 +942,21 @@ bool PrecLand::check_hacc_rad(vehicle_local_position_s *vehicle_local_position)
 		* 		a - a vehicle altitude,
 		*		k - a funnel linear part slope,
 		*		r_o - a funnel linear part offset.
-		*	
+		*
 		*/
 		float funnel_rad = math::max(math::min((_target_pose.z_abs - vehicle_local_position->z) *
-			_strict_funnel_k + _strict_funnel_r_o, _param_funnel_top_rad.get()), _param_hacc_rad.get());
-		
+			_strict_funnel_k + _strict_funnel_r_o, _param_funnel_top_rad.get()), _param_pld_hacc_rad.get());
+
 		// PX4_WARN("FUNNEL: %f m, ALT: %f m", (double)funnel_rad, (double)fabsf(_target_pose.z_abs - vehicle_local_position->z));
-		
+
 		// Check if the vehicle is inside the funnel
 		return fabsf(_target_pose.x_abs - vehicle_local_position->x) < funnel_rad
-			    	&& fabsf(_target_pose.y_abs - vehicle_local_position->y) < funnel_rad;	
+			    	&& fabsf(_target_pose.y_abs - vehicle_local_position->y) < funnel_rad;
 	}
 	else
 		// Check if the vehicle is inside the horizontal acceptance radius
-		return fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_hacc_rad.get()
-			    	&& fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_hacc_rad.get();			
+		return fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_pld_hacc_rad.get()
+			    	&& fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_pld_hacc_rad.get();
 }
 
 bool PrecLand::check_setpoint_reached(struct map_projection_reference_s *ref, float target_x, float target_y, float acc_rad)
@@ -960,7 +977,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 	switch (state) {
 	case PrecLandState::Start:
-		return _search_cnt <= _param_max_searches.get();
+		return _search_cnt <= _param_pld_max_srch.get();
 
 	case PrecLandState::HorizontalApproach:
 
@@ -999,7 +1016,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 	case PrecLandState::FinalApproach:
 		return _target_pose_valid && _target_pose.abs_pos_valid
-		       && (_target_pose.z_abs - vehicle_local_position->z) < _param_final_approach_alt.get();
+		       && (_target_pose.z_abs - vehicle_local_position->z) < _param_pld_fappr_alt.get();
 
 	case PrecLandState::Search:
 		return true;
@@ -1031,7 +1048,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 				_param_asearch_acc_rad.get());
 		else
 			return false;
-		
+
 	case PrecLandState::Fallback:
 		return true;
 
@@ -1072,21 +1089,21 @@ void PrecLand::slewrate(float &sp_x, float &sp_y)
 	// limit the setpoint speed to the maximum cruise speed
 	matrix::Vector2f sp_vel = (sp_curr - _sp_pev) / dt; // velocity of the setpoints
 
-	if (sp_vel.length() > _param_xy_vel_cruise.get()) {
-		sp_vel = sp_vel.normalized() * _param_xy_vel_cruise.get();
+	if (sp_vel.length() > _param_xy_vel_cruise) {
+		sp_vel = sp_vel.normalized() * _param_xy_vel_cruise;
 		sp_curr = _sp_pev + sp_vel * dt;
 	}
 
 	// limit the setpoint acceleration to the maximum acceleration
 	matrix::Vector2f sp_acc = (sp_curr - _sp_pev * 2 + _sp_pev_prev) / (dt * dt); // acceleration of the setpoints
 
-	if (sp_acc.length() > _param_acceleration_hor.get()) {
-		sp_acc = sp_acc.normalized() * _param_acceleration_hor.get();
+	if (sp_acc.length() > _param_acceleration_hor) {
+		sp_acc = sp_acc.normalized() * _param_acceleration_hor;
 		sp_curr = _sp_pev * 2 - _sp_pev_prev + sp_acc * (dt * dt);
 	}
 
 	// limit the setpoint speed such that we can stop at the setpoint given the maximum acceleration/deceleration
-	float max_spd = sqrtf(_param_acceleration_hor.get() * ((matrix::Vector2f)(_sp_pev - matrix::Vector2f(sp_x,
+	float max_spd = sqrtf(_param_acceleration_hor * ((matrix::Vector2f)(_sp_pev - matrix::Vector2f(sp_x,
 			      sp_y))).length());
 	sp_vel = (sp_curr - _sp_pev) / dt; // velocity of the setpoints
 

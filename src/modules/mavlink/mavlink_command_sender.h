@@ -114,8 +114,8 @@ private:
 	TimestampedList<command_item_t> _commands{3};
 
 	bool _debug_enabled = false;
-	static const uint8_t RETRIES = 5;
-	static const uint64_t TIMEOUT_US = 500000;
+	static constexpr uint8_t RETRIES = 5;
+	static constexpr uint64_t TIMEOUT_US = 500000;
 
 	/* do not allow copying or assigning this class */
 	MavlinkCommandSender(const MavlinkCommandSender &) = delete;
