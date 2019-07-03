@@ -425,15 +425,6 @@ else
 	#
 	sh /etc/init.d/rc.vehicle_setup
 
-	#
-	# Late-start USB mavlink stream
-	#
-	if ! ver hwcmp INTEL_AEROFC_V1
-	then
-		# Start MAVLink on the USB port
-		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
-	fi
-
 	# Camera capture driver
 	if param greater CAM_CAP_FBACK 0
 	then
@@ -505,6 +496,15 @@ else
 		param set SYS_AUTOCONFIG 2
 		param save
 		reboot
+	fi
+
+	#
+	# Late-start USB mavlink stream
+	#
+	if ! ver hwcmp INTEL_AEROFC_V1
+	then
+		# Start MAVLink on the USB port
+		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 	fi
 
 #
