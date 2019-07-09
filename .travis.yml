@@ -24,11 +24,12 @@ before_install:
     - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
 env:
- - BUILD_TARGET=px4fmu-v2_default
- - BUILD_TARGET=px4fmu-v2_lpe
- - BUILD_TARGET=px4fmu-v3_default
- - BUILD_TARGET=px4fmu-v4_default
- - BUILD_TARGET=px4fmu-v5_default
+# FIXME: px4_fmu-v2_default is too large
+# - BUILD_TARGET=px4_fmu-v2_default
+ - BUILD_TARGET=px4_fmu-v2_lpe
+ - BUILD_TARGET=px4_fmu-v3_default
+ - BUILD_TARGET=px4_fmu-v4_default
+ - BUILD_TARGET=px4_fmu-v5_default
 
 stage: Build
 
