@@ -65,7 +65,7 @@ deploy:
   api_key: ${GITHUB_OAUTH_TOKEN}
   file_glob: true
   file:
-    - build/**/*px4fmu*.px4
+    - build/**/*px4_fmu*.px4
 # FIXME: pack .elf files into a zip archive
 #    - build/**/*px4fmu*.elf
   skip_cleanup: true
