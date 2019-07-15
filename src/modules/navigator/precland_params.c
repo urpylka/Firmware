@@ -175,7 +175,7 @@ PARAM_DEFINE_FLOAT(PLD_FUNNEL_LEA, 0);
 PARAM_DEFINE_FLOAT(PLD_STATE_TIME, 10);
 
 /**
- * Send precland info using MAVLink 
+ * Send precland info using MAVLink
  *
  * Send MAVLink status texts about the precision land procedure.
  *
@@ -185,7 +185,7 @@ PARAM_DEFINE_FLOAT(PLD_STATE_TIME, 10);
 PARAM_DEFINE_INT32(PLD_INFO, 0);
 
 /**
- * Precision land fallback action 
+ * Precision land fallback action
  *
  * An action to do if the precision land has failed.
  *
@@ -214,7 +214,7 @@ PARAM_DEFINE_INT32(PLD_ASEN, 0);
  *
  * @unit m
  * @min 0.5
- * @max 5
+ * @max 15
  * @decimal 2
  * @increment 0.1
  * @group Precision Land
@@ -241,8 +241,8 @@ PARAM_DEFINE_FLOAT(PLD_ASAR, 0.2);
  * An active search step between concentric circles.
  *
  * @unit m
- * @min 0.1
- * @max 1
+ * @min 0.5
+ * @max 5
  * @decimal 2
  * @increment 0.1
  * @group Precision Land
@@ -255,8 +255,8 @@ PARAM_DEFINE_FLOAT(PLD_ASCS, 1);
  * An active search step between setpoints in a circle.
  *
  * @unit m
- * @min 0.1
- * @max 2
+ * @min 0.2
+ * @max 3
  * @decimal 2
  * @increment 0.1
  * @group Precision Land
