@@ -65,24 +65,24 @@
 #include <uORB/topics/irlock_report.h>
 
 /** Configuration Constants **/
-#define IRLOCK_I2C_ADDRESS		0x54 /** 7-bit address (non shifted) **/
-#define IRLOCK_CONVERSION_INTERVAL_US	20000U /** us = 20ms = 50Hz **/
+#define IRLOCK_I2C_ADDRESS				0x54  	//7-bit address (non shifted)
+#define IRLOCK_CONVERSION_INTERVAL_US	20000U	// us = 20ms = 50Hz
 
-#define IRLOCK_SYNC			0xAA55
-#define IRLOCK_RESYNC		0x5500
-#define IRLOCK_ADJUST		0xAA
+#define IRLOCK_SYNC				0xAA55
+#define IRLOCK_RESYNC			0x5500
+#define IRLOCK_ADJUST			0xAA
 
-#define IRLOCK_RES_X 320
-#define IRLOCK_RES_Y 200
+#define IRLOCK_RES_X			320
+#define IRLOCK_RES_Y			200
 
-#define IRLOCK_CENTER_X				(IRLOCK_RES_X/2)			// the x-axis center pixel position
-#define IRLOCK_CENTER_Y				(IRLOCK_RES_Y/2)			// the y-axis center pixel position
+#define IRLOCK_CENTER_X			(IRLOCK_RES_X/2) // the x-axis center pixel position
+#define IRLOCK_CENTER_Y			(IRLOCK_RES_Y/2) // the y-axis center pixel position
 
-#define IRLOCK_FOV_X (60.0f*M_PI_F/180.0f)
-#define IRLOCK_FOV_Y (35.0f*M_PI_F/180.0f)
+#define IRLOCK_FOV_X			(60.0f*M_PI_F/180.0f)
+#define IRLOCK_FOV_Y			(35.0f*M_PI_F/180.0f)
 
-#define IRLOCK_TAN_HALF_FOV_X 0.57735026919f // tan(0.5 * 60 * pi/180)
-#define IRLOCK_TAN_HALF_FOV_Y 0.31529878887f // tan(0.5 * 35 * pi/180)
+#define IRLOCK_TAN_HALF_FOV_X		0.57735026919f // tan(0.5 * 60 * pi/180)
+#define IRLOCK_TAN_HALF_FOV_Y		0.31529878887f // tan(0.5 * 35 * pi/180)
 
 #define IRLOCK_TAN_ANG_PER_PIXEL_X	(2*IRLOCK_TAN_HALF_FOV_X/IRLOCK_RES_X)
 #define IRLOCK_TAN_ANG_PER_PIXEL_Y	(2*IRLOCK_TAN_HALF_FOV_Y/IRLOCK_RES_Y)
@@ -91,22 +91,22 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-#define IRLOCK_BASE_DEVICE_PATH	"/dev/irlock"
-#define IRLOCK0_DEVICE_PATH	"/dev/irlock0"
+#define IRLOCK_BASE_DEVICE_PATH		"/dev/irlock"
+#define IRLOCK0_DEVICE_PATH		"/dev/irlock0"
 
-#define IRLOCK_OBJECTS_MAX	5	/** up to 5 objects can be detected/reported **/
+#define IRLOCK_OBJECTS_MAX		5 // up to 5 objects can be detected/reported
 
 struct irlock_target_s {
 	uint16_t signature;	/** target signature **/
-	float pos_x;	/** x-axis distance from center of image to center of target in units of tan(theta) **/
-	float pos_y;	/** y-axis distance from center of image to center of target in units of tan(theta) **/
-	float size_x;	/** size of target along x-axis in units of tan(theta) **/
-	float size_y;	/** size of target along y-axis in units of tan(theta) **/
+	float pos_x;		/** x-axis distance from center of image to center of target in units of tan(theta) **/
+	float pos_y;		/** y-axis distance from center of image to center of target in units of tan(theta) **/
+	float size_x;		/** size of target along x-axis in units of tan(theta) **/
+	float size_y;		/** size of target along y-axis in units of tan(theta) **/
 };
 
 /** irlock_s structure returned from read calls **/
 struct irlock_s {
-	uint64_t timestamp; /** microseconds since system start **/
+	uint64_t timestamp;	/** microseconds since system start **/
 	uint8_t num_targets;
 	struct irlock_target_s targets[IRLOCK_OBJECTS_MAX];
 };
@@ -127,10 +127,10 @@ int get_i2c_bus()
 
 class IRLOCK : public device::I2C
 {
+
 public:
 	IRLOCK(int bus = get_i2c_bus(), int address = IRLOCK_I2C_ADDRESS);
 	virtual ~IRLOCK();
-
 	virtual int init();
 	virtual int probe();
 	virtual int info();
@@ -141,10 +141,10 @@ public:
 private:
 
 	/** start periodic reads from sensor **/
-	void 		start();
+	void		start();
 
 	/** stop periodic reads from sensor **/
-	void 		stop();
+	void		stop();
 
 	/** static function that is called by worker queue, arg will be pointer to instance of this class **/
 	static void	cycle_trampoline(void *arg);
@@ -160,23 +160,24 @@ private:
 
 	/** internal variables **/
 	ringbuffer::RingBuffer *_reports;
-	bool _sensor_ok;
-	work_s _work;
-	uint32_t _read_failures;
+	bool		_sensor_ok;
+	work_s		_work;
+	uint32_t	_read_failures;
 
-	int _orb_class_instance;
-	orb_advert_t _irlock_report_topic;
+	int		_orb_class_instance;
+	orb_advert_t	_irlock_report_topic;
 };
 
 /** global pointer for single IRLOCK sensor **/
 namespace
 {
-IRLOCK *g_irlock = nullptr;
+	IRLOCK *g_irlock = nullptr;
 }
 
 void irlock_usage();
 
 extern "C" __EXPORT int irlock_main(int argc, char *argv[]);
+
 
 /** constructor **/
 IRLOCK::IRLOCK(int bus, int address) :
@@ -189,6 +190,7 @@ IRLOCK::IRLOCK(int bus, int address) :
 {
 	memset(&_work, 0, sizeof(_work));
 }
+
 
 /** destructor **/
 IRLOCK::~IRLOCK()
@@ -216,7 +218,6 @@ int IRLOCK::init()
 
 	if (_reports == nullptr) {
 		return ENOTTY;
-
 	} else {
 		_sensor_ok = true;
 		/** start work queue **/
@@ -485,6 +486,7 @@ void irlock_usage()
 	PRINT_MODULE_USAGE_COMMAND_DESCR("info","Print driver information");
 }
 
+// Function for use from mavlink console
 int irlock_main(int argc, char *argv[])
 {
 	// TODO FIX: If I've started irlock by "start" he will go down after "test"
@@ -496,13 +498,12 @@ int irlock_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'b':
-			i2cdevice = (uint8_t)atoi(myoptarg);
-			break;
-
-		default:
-			PX4_WARN("Unknown option!");
-			return -1;
+			case 'b':
+				i2cdevice = (uint8_t)atoi(myoptarg);
+				break;
+			default:
+				PX4_WARN("Unknown option!");
+				return -1;
 		}
 	}
 
