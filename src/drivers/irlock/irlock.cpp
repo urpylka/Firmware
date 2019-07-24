@@ -55,6 +55,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <px4_getopt.h>
+#include <px4_module.h>
 
 #include <nuttx/clock.h>
 #include <nuttx/wqueue.h>
@@ -475,9 +476,13 @@ int IRLOCK::read_device_block(struct irlock_target_s *block)
 
 void irlock_usage()
 {
-	warnx("missing command: try 'start', 'stop', 'info', 'test'");
-	warnx("options:");
-	warnx("    -b i2cbus (%d)", IRLOCK_I2C_BUS);
+	PRINT_MODULE_USAGE_NAME("irlock", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("sensors");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
+	PRINT_MODULE_USAGE_PARAM_INT('b', get_i2c_bus(), 1, 2000, "Start driver on specific I2C bus", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("info","Print driver information");
 }
 
 int irlock_main(int argc, char *argv[])
