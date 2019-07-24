@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,7 @@
 /**
  * @file irlock.cpp
  * @author Michael Landes
+ * @author Artem Smirnov <urpylka@gmail.com>
  *
  * Driver for an IR-Lock and Pixy vision sensor connected via I2C.
  *
@@ -63,7 +64,6 @@
 #include <uORB/topics/irlock_report.h>
 
 /** Configuration Constants **/
-#define IRLOCK_I2C_BUS			PX4_I2C_BUS_EXPANSION
 #define IRLOCK_I2C_ADDRESS		0x54 /** 7-bit address (non shifted) **/
 #define IRLOCK_CONVERSION_INTERVAL_US	20000U /** us = 20ms = 50Hz **/
 
@@ -110,10 +110,24 @@ struct irlock_s {
 	struct irlock_target_s targets[IRLOCK_OBJECTS_MAX];
 };
 
+
+// USE CUSTOM I2C BUS
+int get_i2c_bus()
+{
+	int _bus;
+	param_get(param_find("IRLOCK_I2C_BUS"), &_bus);
+
+	// default i2c (setup in board_config.h)
+	if (_bus == 0) _bus = PX4_I2C_BUS_EXPANSION;
+
+	return _bus;
+}
+
+
 class IRLOCK : public device::I2C
 {
 public:
-	IRLOCK(int bus = IRLOCK_I2C_BUS, int address = IRLOCK_I2C_ADDRESS);
+	IRLOCK(int bus = get_i2c_bus(), int address = IRLOCK_I2C_ADDRESS);
 	virtual ~IRLOCK();
 
 	virtual int init();
@@ -468,7 +482,8 @@ void irlock_usage()
 
 int irlock_main(int argc, char *argv[])
 {
-	int i2cdevice = IRLOCK_I2C_BUS;
+	// TODO FIX: If I've started irlock by "start" he will go down after "test"
+	int i2cdevice = get_i2c_bus();
 
 	int ch;
 	int myoptind = 1;
