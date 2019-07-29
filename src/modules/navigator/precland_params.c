@@ -193,6 +193,7 @@ PARAM_DEFINE_INT32(PLD_INFO, 0);
  * @max 1
  * @value 0 Land
  * @value 1 RTL
+ * @value 2 Safety point
  * @group Precision Land
  */
 PARAM_DEFINE_INT32(PLD_FOAC, 0);
