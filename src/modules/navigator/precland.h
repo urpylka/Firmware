@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,23 +50,23 @@
 #include "mission_block.h"
 
 enum class PrecLandState {
-	Start, // Starting state
-	HorizontalApproach, // Positioning over landing target while maintaining altitude
-	DescendAboveTarget, // Stay over landing target while descending
-	FinalApproach, // Final landing approach, even without landing target
-	Search, // Search for landing target
-	ActiveSearchReset, // Reset active search attempts counter
-	ActiveSearchStart, // Start active search
-	ActiveSearchNewCircle, // Move the vehicle to the start position in a circle
-	ActiveSearch, // Perform an active search around the circle
-	ActiveSearchReturn, // Return to the initial search position
-	Fallback, // Fallback landing method
-	Done // Done landing
+	Start,			// Starting state
+	HorizontalApproach,	// Positioning over landing target while maintaining altitude
+	DescendAboveTarget,	// Stay over landing target while descending
+	FinalApproach,		// Final landing approach, even without landing target
+	Search,			// Search for landing target
+	ActiveSearchReset,	// Reset active search attempts counter
+	ActiveSearchStart,	// Start active search
+	ActiveSearchNewCircle,	// Move the vehicle to the start position in a circle
+	ActiveSearch,		// Perform an active search around the circle
+	ActiveSearchReturn,	// Return to the initial search position
+	Fallback,		// Fallback landing method
+	Done			// Done landing
 };
 
 enum class PrecLandMode {
-	Opportunistic = 1, // only do precision landing if landing target visible at the beginning
-	Required = 2 // try to find landing target if not visible at the beginning
+	Opportunistic = 1,	// only do precision landing if landing target visible at the beginning
+	Required = 2		// try to find landing target if not visible at the beginning
 };
 
 class PrecLand : public MissionBlock, public ModuleParams
