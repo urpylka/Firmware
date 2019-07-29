@@ -73,7 +73,7 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#define SF1XX_BUS_DEFAULT	PX4_I2C_BUS_EXPANSION
+#define SF1XX_BUS_DEFAULT	4
 #define SF1XX_BASEADDR		0x66
 #define SF1XX_DEVICE_PATH	"/dev/sf1xx"
 
@@ -85,8 +85,7 @@
 class SF1XX : public device::I2C
 {
 public:
-	SF1XX(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int bus = SF1XX_BUS_DEFAULT,
-	      int address = SF1XX_BASEADDR);
+	SF1XX(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int bus = SF1XX_BUS_DEFAULT, int address = SF1XX_BASEADDR);
 	virtual ~SF1XX();
 
 	virtual int init();
@@ -182,6 +181,7 @@ SF1XX::SF1XX(uint8_t rotation, int bus, int address) :
 	I2C("SF1XX", SF1XX_DEVICE_PATH, bus, address, 400000),
 	_rotation(rotation)
 {
+	PX4_INFO("bus: %d, address: %X", bus, address);
 }
 
 SF1XX::~SF1XX()
@@ -258,6 +258,7 @@ SF1XX::init()
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != OK) {
+		PX4_ERR("I2C::init() != OK");
 		return ret;
 	}
 
@@ -267,6 +268,7 @@ SF1XX::init()
 	set_device_address(SF1XX_BASEADDR);
 
 	if (_reports == nullptr) {
+		PX4_ERR("_reports == nullptr");
 		return ret;
 	}
 
@@ -635,10 +637,12 @@ start_bus(uint8_t rotation, int i2c_bus)
 	g_dev = new SF1XX(rotation, i2c_bus);
 
 	if (g_dev == nullptr) {
+		PX4_ERR("g_dev == nullptr");
 		goto fail;
 	}
 
 	if (OK != g_dev->init()) {
+		PX4_ERR("OK != g_dev->init()");
 		goto fail;
 	}
 
@@ -646,6 +650,7 @@ start_bus(uint8_t rotation, int i2c_bus)
 	fd = px4_open(SF1XX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
+		PX4_ERR("fd < 0");
 		goto fail;
 	}
 
@@ -663,6 +668,7 @@ fail:
 		delete g_dev;
 		g_dev = nullptr;
 	}
+	PX4_ERR("gotofail");
 
 	return PX4_ERROR;
 }
@@ -828,7 +834,7 @@ $ sf1xx stop
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Attempt to start driver on all I2C buses", true);
-	PRINT_MODULE_USAGE_PARAM_INT('b', 1, 1, 2000, "Start driver on specific I2C bus", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', SF1XX_BUS_DEFAULT, 1, 2000, "Start driver on specific I2C bus", true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 1, 25, "Sensor rotation - downward facing by default", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
@@ -880,6 +886,7 @@ sf1xx_main(int argc, char *argv[])
 			return sf1xx::start(rotation);
 
 		} else {
+			// non returning the error of connection
 			return sf1xx::start_bus(rotation, i2c_bus);
 		}
 	}
