@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -36,6 +36,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
+		tfmini_nsh_commands.cpp
 		tfmini.cpp
 		tfmini_parser.cpp
 	MODULE_CONFIG
