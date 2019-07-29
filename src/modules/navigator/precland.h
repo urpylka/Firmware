@@ -151,7 +151,8 @@ private:
 	/* Precland fallback actions */
 	enum {
 		PLD_FOAC_LAND = 0,
-		PLD_FOAC_RTL = 1
+		PLD_FOAC_RTL = 1,
+		PLD_FOAC_SAFETY_POINT = 2
 	};
 
 	float _asearch_radius{0}; /**< current concentric circle radius */
