@@ -581,6 +581,10 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().vy = xLP(X_vy);	// east
 		_pub_lpos.get().vz = xLP(X_vz);	// down
 
+		_pub_lpos.get().ax = _u(U_ax);
+		_pub_lpos.get().ay = _u(U_ay);
+		_pub_lpos.get().az = _u(U_az);
+
 		// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
 		_pub_lpos.get().z_deriv = xLP(X_vz);
 
