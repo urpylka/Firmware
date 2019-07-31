@@ -176,6 +176,10 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
 	_P -= K * C * _P;
+
+	_pub_est_status.get().mocap_gain[0] = K(X_x, Y_mocap_x);
+	_pub_est_status.get().mocap_gain[1] = K(X_y, Y_mocap_y);
+	_pub_est_status.get().mocap_gain[2] = K(X_z, Y_mocap_z);
 }
 
 void BlockLocalPositionEstimator::mocapCheckTimeout()

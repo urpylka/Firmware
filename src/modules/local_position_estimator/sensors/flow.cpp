@@ -203,6 +203,9 @@ void BlockLocalPositionEstimator::flowCorrect()
 		Vector<float, n_x> dx = K * r;
 		_x += dx;
 		_P -= K * C * _P;
+
+		_pub_est_status.get().flow_gain[0] = K(X_vx, Y_flow_vx);
+		_pub_est_status.get().flow_gain[1] = K(X_vy, Y_flow_vy);
 	}
 }
 
