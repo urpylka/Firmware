@@ -221,6 +221,13 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
 	_P -= K * C * _P;
+
+	_pub_est_status.get().gps_pos_gain[0] = K(X_x, Y_gps_x);
+	_pub_est_status.get().gps_pos_gain[1] = K(X_y, Y_gps_y);
+	_pub_est_status.get().gps_pos_gain[2] = K(X_z, Y_gps_z);
+	_pub_est_status.get().gps_vel_gain[0] = K(X_vx, Y_gps_vx);
+	_pub_est_status.get().gps_vel_gain[1] = K(X_vy, Y_gps_vy);
+	_pub_est_status.get().gps_vel_gain[2] = K(X_vz, Y_gps_vz);
 }
 
 void BlockLocalPositionEstimator::gpsCheckTimeout()

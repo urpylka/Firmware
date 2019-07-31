@@ -107,3 +107,10 @@ uint16 solution_status_flags # Bitmask indicating which filter kinematic state o
 float32 time_slip # cumulative amount of time in seconds that the EKF inertial calculation has slipped relative to system time
 
 bool pre_flt_fail # true when estimator has failed pre-flight checks and the vehicle should not be flown regardless of flight mode
+
+# Kalman gains
+float32[3] gps_pos_gain
+float32[3] gps_vel_gain
+float32[2] flow_gain
+float32[3] vision_gain
+float32[3] mocap_gain
