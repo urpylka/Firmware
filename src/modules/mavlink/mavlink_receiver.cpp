@@ -594,6 +594,8 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		vcmd.timestamp = hrt_absolute_time();
 		vcmd.param2 = 2.0; // 1 - H264, 2 - raw TIFF sequence
 		vcmd.command = 2500;//vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE;
+		vcmd.target_system = 1;
+		vcmd.target_component = MAV_COMP_ID_CAMERA;
 		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		
 	} else if (cmd_mavlink.command == 2501) {
@@ -601,6 +603,8 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		vehicle_command_s vcmd = {};
 		vcmd.timestamp = hrt_absolute_time();
 		vcmd.command = 2501;//vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE;
+		vcmd.target_system = 1;
+		vcmd.target_component = MAV_COMP_ID_CAMERA;
 		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_CONTROL_VIDEO) {
