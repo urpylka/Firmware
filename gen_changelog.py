@@ -11,12 +11,12 @@ upload_changelog = True
 
 try:
     current_tag = os.environ['TRAVIS_TAG']
-    if current_tag == '':
-        current_tag = 'HEAD'
+    if current_tag == '' or current_tag == 'HEAD':
+        current_tag = os.environ['TRAVIS_BRANCH']
         upload_changelog = False
     print('TRAVIS_TAG is set to {}'.format(current_tag))
 except KeyError:
-    print('TRAVIS_TAG not set - not uploading changelog')
+    print("TRAVIS_TAG not set, setting current_tag to HEAD")
     current_tag = 'HEAD'
     upload_changelog = False
 
@@ -34,7 +34,7 @@ except KeyError:
     repo_slug = ''
     exit(1)
 
-repo_owner = repo_slug.split()[0]
+repo_owner = repo_slug.split('/')[0]
 print('Repo owner is set to {}'.format(repo_owner))
 
 if len(sys.argv) > 1:
