@@ -633,6 +633,8 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		vcmd.param5 = vehicle_command.param5;
 		vcmd.param6 = vehicle_command.param6;
 		vcmd.param7 = vehicle_command.param7;
+		vcmd.target_system = 1;
+		vcmd.target_component = MAV_COMP_ID_CAMERA;
 		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 		
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
