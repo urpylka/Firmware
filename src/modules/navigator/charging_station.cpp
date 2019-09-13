@@ -10,7 +10,7 @@
 #define ACTION_OPEN 0
 #define ACTION_CLOSE 1
 
-#define OPEN_TIMEOUT 20
+#define OPEN_TIMEOUT 60
 #define NO_HEARTBEAT_TIMEOUT 6
 
 ChargingStation::ChargingStation(Navigator *navigator) :
