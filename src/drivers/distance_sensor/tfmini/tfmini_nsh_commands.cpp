@@ -40,7 +40,7 @@
 
 #include <px4_module.h>
 
-#include "tfmini.h"
+#include "tfmini.cpp"
 
 /**
  * Local functions in support of the shell command.
@@ -60,14 +60,14 @@ namespace tfmini
 	 */
 	int start(const char *port, uint8_t rotation)
 	{
-		// needs for use "goto fail;"
-		int fd;
-
 		// Initialize TFMINI
 		if (g_dev != nullptr) {
 			PX4_WARN("already started");
 			return -1;
 		}
+
+		// needs for use "goto fail;"
+		int fd;
 
 		/* create the driver */
 		g_dev = new TFMINI(port, rotation);
