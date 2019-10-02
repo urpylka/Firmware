@@ -52,6 +52,7 @@
 #include <matrix/math.hpp>
 #include <px4_workqueue.h>
 #include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
 
@@ -322,6 +323,7 @@ CameraTrigger::CameraTrigger() :
 	struct camera_trigger_s trigger = {};
 
 	if (!_cam_cap_fback) {
+		PX4_ERR("urpylka: CameraTrigger::orb_advertise(ORB_ID(camera_trigger)");
 		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
 
 	} else {
@@ -430,6 +432,7 @@ CameraTrigger::toggle_power()
 void
 CameraTrigger::shoot_once()
 {
+	PX4_ERR("urpylka: CameraTrigger::shoot_once");
 	if (!_trigger_paused) {
 
 		// schedule trigger on and off calls
@@ -494,6 +497,8 @@ CameraTrigger::stop()
 void
 CameraTrigger::test()
 {
+	PX4_ERR("urpylka: CameraTrigger::test");
+
 	vehicle_command_s vcmd = {};
 	vcmd.timestamp = hrt_absolute_time();
 	vcmd.param5 = 1.0;
@@ -505,7 +510,7 @@ CameraTrigger::test()
 void
 CameraTrigger::cycle_trampoline(void *arg)
 {
-
+	PX4_ERR("urpylka: CameraTrigger::cycle_trampoline");
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
 	// default loop polling interval
@@ -549,7 +554,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 				trig->_one_shot = true;
 
 			}
-
+			PX4_ERR("urpylka: VEHICLE_CMD_DO_DIGICAM_CONTROL");
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
@@ -579,6 +584,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 			}
 
+			PX4_ERR("urpylka: VEHICLE_CMD_DO_TRIGGER_CONTROL");
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST) {
@@ -617,6 +623,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 				trig->_one_shot = true;
 			}
 
+			PX4_ERR("urpylka: VEHICLE_CMD_DO_SET_CAM_TRIGG_DIST");
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL) {
@@ -636,6 +643,7 @@ CameraTrigger::cycle_trampoline(void *arg)
 				}
 			}
 
+			PX4_ERR("urpylka: VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL");
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		}
@@ -748,11 +756,15 @@ CameraTrigger::cycle_trampoline(void *arg)
 void
 CameraTrigger::engage(void *arg)
 {
+	PX4_ERR("urpylka: CameraTrigger::engage");
 
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
 	// Trigger the camera
 	trig->_camera_interface->trigger(true);
+
+
+	PX4_ERR("urpylka: trigger engage()");
 
 	if (trig->_test_shot) {
 		// do not send messages or increment frame count for test shots
@@ -789,6 +801,7 @@ CameraTrigger::engage(void *arg)
 void
 CameraTrigger::disengage(void *arg)
 {
+	PX4_ERR("urpylka: CameraTrigger::disengage");
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
 	trig->_camera_interface->trigger(false);

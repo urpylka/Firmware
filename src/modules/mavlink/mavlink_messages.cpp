@@ -2018,7 +2018,9 @@ protected:
 	{
 		struct camera_trigger_s trigger;
 
+		PX4_ERR("urpylka: before cam_trig send 1/3");
 		if (_trigger_sub->update(&_trigger_time, &trigger)) {
+			PX4_ERR("urpylka: inside cam_trig send 2/3");
 			mavlink_camera_trigger_t msg = {};
 
 			msg.time_usec = trigger.timestamp;
@@ -2026,6 +2028,7 @@ protected:
 
 			/* ensure that only active trigger events are sent */
 			if (trigger.timestamp > 0) {
+				PX4_ERR("urpylka: inside cam_trig send (and timestamp correct) 3/3");
 
 				mavlink_msg_camera_trigger_send_struct(_mavlink->get_channel(), &msg);
 

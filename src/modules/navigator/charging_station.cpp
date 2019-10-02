@@ -13,6 +13,8 @@
 #define OPEN_TIMEOUT 60
 #define NO_HEARTBEAT_TIMEOUT 6
 
+#define PLD_STATUS_MAVLINK(_level, _text, ...) mavlink_vasprintf(_level, _navigator->get_mavlink_log_pub(), _text, ##__VA_ARGS__);
+
 ChargingStation::ChargingStation(Navigator *navigator) :
 	MissionBlock(navigator)
 {
@@ -50,12 +52,16 @@ ChargingStation::on_active()
 					idle();
 				}
 				PX4_INFO("Open charging station with id %d", _id);
+				PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: Open charging station with id");
 			}
 		} else if (_action == ACTION_CLOSE) {
 			to_send = true;
 			PX4_INFO("Close charging station with id %d", _id);
+			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: Close charging station with id");
+
 		} else {
 			PX4_WARN("Unknown charging station action: %d", _action);
+			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: Unknown charging station action:");
 			return;
 		}
 
@@ -79,10 +85,13 @@ ChargingStation::on_active()
 
 	} else if (hrt_elapsed_time(&_start_time) / 1e6f > OPEN_TIMEOUT) {
 		_navigator->set_mission_failure("Charging station opening timeout");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: Charging station opening timeout");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: Open timeout %d", OPEN_TIMEOUT);
 
 	} else if ((hrt_elapsed_time(&_start_time) / 1e6f > NO_HEARTBEAT_TIMEOUT) &&
 			    !_heartbeat_received && !in_flight()) {
 		_navigator->set_mission_failure("No heartbeats from the charging station");
+		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: No heartbeats from the charging station");
 
 	} else if (_action == ACTION_OPEN) {
 		bool updated;
@@ -90,6 +99,8 @@ ChargingStation::on_active()
 		// check if we get non-success ack from the charging station
 		orb_check(_cmd_ack_sub, &updated);
 		if (updated) {
+
+			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: check if we get non-success ack from the charging station");
 			struct vehicle_command_ack_s ack;
 			orb_copy(ORB_ID(vehicle_command_ack), _cmd_ack_sub, &ack);
 			if (ack.command == vehicle_command_s::VEHICLE_CMD_DO_SET_MODE &&
@@ -97,6 +108,7 @@ ChargingStation::on_active()
 				ack.result != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED &&
 				ack.result != vehicle_command_ack_s::VEHICLE_RESULT_IN_PROGRESS) {
 					_navigator->set_mission_failure("Charging station responded with failure");
+					PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: Charging station responded with failure");
 					return;
 				}
 		}
@@ -104,18 +116,26 @@ ChargingStation::on_active()
 		// check if the charging station is in needed mode
 		orb_check(_charging_station_state_sub, &updated);
 		if (updated) {
+
+			PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: check if the charging station is in needed mode");
 			struct charging_station_state_s state;
 			orb_copy(ORB_ID(charging_station_state), _charging_station_state_sub, &state);
 
-			if (state.id == _id && hrt_elapsed_time(&state.timestamp) < 2000000) {
+			unsigned int urpylka = 2000000;
+			urpylka = 6000000;
+			if (state.id == _id && hrt_elapsed_time(&state.timestamp) < urpylka) {
+				PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: valid state");
+
 				// valid state
 				_heartbeat_received = true;
 				if (!in_flight() && (state.system_status == charging_station_state_s::SYSTEM_STATUS_CRITICAL ||
 					state.system_status == charging_station_state_s::SYSTEM_STATUS_EMERGENCY)) {
 					_navigator->set_mission_failure("Charging station failure");
+					PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: Charging station failure");
 
 				} else if (state.custom_mode == charging_station_state_s::CUSTOM_MODE_OPEN) {
 					PX4_INFO("Charging station is open");
+					PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: Charging station is open");
 					_complete = true;
 				}
 			}
@@ -137,6 +157,7 @@ void
 ChargingStation::set_params(int id, int action)
 {
 	PX4_INFO("Set charging station action params: id=%d, action=%d", id, action);
+	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "urpylka: Set charging station action params: id=%d, action=%d", id, action);
 	_id = id;
 	_action = action;
 }
