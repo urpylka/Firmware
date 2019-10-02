@@ -269,11 +269,11 @@ void LandingTargetEstimator::_check_params(const bool force)
 
 void LandingTargetEstimator::_initialize_topics()
 {
-	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_sensorBiasSub = orb_subscribe(ORB_ID(sensor_bias));
-	_irlockReportSub = orb_subscribe(ORB_ID(irlock_report));
-	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
+	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));	// локальная позиция коптера
+	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));				// ориентация коптера
+	_sensorBiasSub = orb_subscribe(ORB_ID(sensor_bias));				// углы и скорости с imu
+	_irlockReportSub = orb_subscribe(ORB_ID(irlock_report));			// irlock
+	_parameterSub = orb_subscribe(ORB_ID(parameter_update));			// update параметров
 }
 
 void LandingTargetEstimator::_update_topics()
@@ -282,6 +282,14 @@ void LandingTargetEstimator::_update_topics()
 	_vehicleAttitude_valid = _orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
 	_sensorBias_valid = _orb_update(ORB_ID(sensor_bias), _sensorBiasSub, &_sensorBias);
 	_new_irlockReport = _orb_update(ORB_ID(irlock_report), _irlockReportSub, &_irlockReport);
+	// listener vehicle_local_position
+	// listener vehicle_attitude
+	// listener sensor_bias
+	// listener irlock_report
+	// listener landing_target_pose
+	// commander mode auto:precland
+	// listener actuator_controls
+	// listener vehicle_local_position_setpoint
 }
 
 
