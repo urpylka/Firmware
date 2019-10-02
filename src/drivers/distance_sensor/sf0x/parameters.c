@@ -41,5 +41,7 @@
  * @value 3 SF10/b
  * @value 4 SF10/c
  * @value 5 SF11/c
+ * @value 6 SF20/LW20
+ * @value 7 TFmini
  */
 PARAM_DEFINE_INT32(SENS_EN_SF0X, 1);
