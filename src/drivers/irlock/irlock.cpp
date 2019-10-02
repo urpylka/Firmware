@@ -65,21 +65,21 @@
 #include <uORB/topics/irlock_report.h>
 
 /** Configuration Constants **/
-#define IRLOCK_I2C_ADDRESS				0x54  	//7-bit address (non shifted)
+#define IRLOCK_I2C_ADDRESS			0x54  	//7-bit address (non shifted)
 #define IRLOCK_CONVERSION_INTERVAL_US	20000U	// us = 20ms = 50Hz
 
-#define IRLOCK_SYNC				0xAA55
-#define IRLOCK_RESYNC			0x5500
-#define IRLOCK_ADJUST			0xAA
+#define IRLOCK_SYNC					0xAA55
+#define IRLOCK_RESYNC				0x5500
+#define IRLOCK_ADJUST				0xAA
 
-#define IRLOCK_RES_X			320
-#define IRLOCK_RES_Y			200
+#define IRLOCK_RES_X				320
+#define IRLOCK_RES_Y				200
 
-#define IRLOCK_CENTER_X			(IRLOCK_RES_X/2) // the x-axis center pixel position
-#define IRLOCK_CENTER_Y			(IRLOCK_RES_Y/2) // the y-axis center pixel position
+#define IRLOCK_CENTER_X				(IRLOCK_RES_X/2) // the x-axis center pixel position
+#define IRLOCK_CENTER_Y				(IRLOCK_RES_Y/2) // the y-axis center pixel position
 
-#define IRLOCK_FOV_X			(60.0f*M_PI_F/180.0f)
-#define IRLOCK_FOV_Y			(35.0f*M_PI_F/180.0f)
+#define IRLOCK_FOV_X				(60.0f*M_PI_F/180.0f)
+#define IRLOCK_FOV_Y				(35.0f*M_PI_F/180.0f)
 
 #define IRLOCK_TAN_HALF_FOV_X		0.57735026919f // tan(0.5 * 60 * pi/180)
 #define IRLOCK_TAN_HALF_FOV_Y		0.31529878887f // tan(0.5 * 35 * pi/180)
@@ -92,9 +92,9 @@
 #endif
 
 #define IRLOCK_BASE_DEVICE_PATH		"/dev/irlock"
-#define IRLOCK0_DEVICE_PATH		"/dev/irlock0"
+#define IRLOCK0_DEVICE_PATH			"/dev/irlock0"
 
-#define IRLOCK_OBJECTS_MAX		5 // up to 5 objects can be detected/reported
+#define IRLOCK_OBJECTS_MAX			5 // up to 5 objects can be detected/reported
 
 struct irlock_target_s {
 	uint16_t signature;	/** target signature **/
