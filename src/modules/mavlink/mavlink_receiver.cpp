@@ -592,6 +592,87 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			send_storage_information(cmd_mavlink.param1 + 0.5f);
 		}
 
+	} else if (cmd_mavlink.command == 2500) {
+		// mavlink_log_info(&_mavlink_log_pub, "Video start command received");
+		vehicle_command_s vcmd = {};
+		vcmd.timestamp = hrt_absolute_time();
+		vcmd.param2 = 2.0; // 1 - H264, 2 - raw TIFF sequence
+		vcmd.command = 2500;//vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE;
+		vcmd.target_system = 1;
+		vcmd.target_component = MAV_COMP_ID_CAMERA;
+		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		
+	} else if (cmd_mavlink.command == 2501) {
+		// mavlink_log_info(&_mavlink_log_pub, "Video stop command received");
+		vehicle_command_s vcmd = {};
+		vcmd.timestamp = hrt_absolute_time();
+		vcmd.command = 2501;//vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE;
+		vcmd.target_system = 1;
+		vcmd.target_component = MAV_COMP_ID_CAMERA;
+		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+
+	} else if (cmd_mavlink.command == MAV_CMD_DO_CONTROL_VIDEO) {
+		// mavlink_log_info(&_mavlink_log_pub, "MAV_CMD_DO_CONTROL_VIDEO command received");
+		vehicle_command_s vcmd = {};
+		vcmd.timestamp = hrt_absolute_time();
+		vcmd.command = MAV_CMD_DO_CONTROL_VIDEO;
+		vcmd.param1 = vehicle_command.param1;
+		vcmd.param2 = vehicle_command.param2;
+		vcmd.param3 = vehicle_command.param3;
+		vcmd.param4 = vehicle_command.param4;
+		vcmd.param5 = vehicle_command.param5;
+		vcmd.param6 = vehicle_command.param6;
+		vcmd.param7 = vehicle_command.param7;
+		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+
+	} else if (cmd_mavlink.command == MAV_CMD_DO_DIGICAM_CONFIGURE) {
+		// mavlink_log_info(&_mavlink_log_pub, "MAV_CMD_DO_DIGICAM_CONFIGURE command received");
+		vehicle_command_s vcmd = {};
+		vcmd.timestamp = hrt_absolute_time();
+		vcmd.command = MAV_CMD_DO_DIGICAM_CONFIGURE;
+		vcmd.param1 = vehicle_command.param1;
+		vcmd.param2 = vehicle_command.param2;
+		vcmd.param3 = vehicle_command.param3;
+		vcmd.param4 = vehicle_command.param4;
+		vcmd.param5 = vehicle_command.param5;
+		vcmd.param6 = vehicle_command.param6;
+		vcmd.param7 = vehicle_command.param7;
+		vcmd.target_system = 1;
+		vcmd.target_component = MAV_COMP_ID_CAMERA;
+		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+
+	} else if (cmd_mavlink.command == MAV_CMD_IMAGE_START_CAPTURE) {
+		// mavlink_log_info(&_mavlink_log_pub, "MAV_CMD_IMAGE_START_CAPTURE command received");
+		vehicle_command_s vcmd = {};
+		vcmd.timestamp = hrt_absolute_time();
+		vcmd.command = MAV_CMD_IMAGE_START_CAPTURE;
+		vcmd.param1 = vehicle_command.param1;
+		vcmd.param2 = vehicle_command.param2;
+		vcmd.param3 = vehicle_command.param3;
+		vcmd.param4 = vehicle_command.param4;
+		vcmd.param5 = vehicle_command.param5;
+		vcmd.param6 = vehicle_command.param6;
+		vcmd.param7 = vehicle_command.param7;
+		vcmd.target_system = 1;
+		vcmd.target_component = MAV_COMP_ID_CAMERA;
+		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+
+	} else if (cmd_mavlink.command == MAV_CMD_IMAGE_STOP_CAPTURE) {
+		// mavlink_log_info(&_mavlink_log_pub, "MAV_CMD_IMAGE_STOP_CAPTURE command received");
+		vehicle_command_s vcmd = {};
+		vcmd.timestamp = hrt_absolute_time();
+		vcmd.command = MAV_CMD_IMAGE_STOP_CAPTURE;
+		vcmd.param1 = vehicle_command.param1;
+		vcmd.param2 = vehicle_command.param2;
+		vcmd.param3 = vehicle_command.param3;
+		vcmd.param4 = vehicle_command.param4;
+		vcmd.param5 = vehicle_command.param5;
+		vcmd.param6 = vehicle_command.param6;
+		vcmd.param7 = vehicle_command.param7;
+		vcmd.target_system = 1;
+		vcmd.target_component = MAV_COMP_ID_CAMERA;
+		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+
 	} else {
 
 		send_ack = false;
