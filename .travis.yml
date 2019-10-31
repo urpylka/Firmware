@@ -43,10 +43,10 @@ jobs:
       script: PX4_DOCKER_REPO="px4io/px4-dev-simulation-bionic:2019-10-04" ./Tools/docker_run.sh make tests
     - stage: Tests 
       name: Mission test
-      script: PX4_DOCKER_REPO="px4io/px4-dev-ros:2018-03-30" ./Tools/docker_run.sh make tests_mission
+      script: PX4_DOCKER_REPO="px4io/px4-dev-ros-kinetic:2019-10-24" ./Tools/docker_run.sh make tests_mission
     - stage: Tests
       name: Offboard test
-      script: PX4_DOCKER_REPO="px4io/px4-dev-ros:2018-03-30" ./Tools/docker_run.sh make tests_offboard
+      script: PX4_DOCKER_REPO="px4io/px4-dev-ros-kinetic:2019-10-24" ./Tools/docker_run.sh make tests_offboard
     - stage: Annotate
       name: Auto-generate changelog
       language: python
