@@ -192,8 +192,8 @@ int LidarLiteI2C::probe()
 			  check for unit id. It would be better if
 			  we had a proper WHOAMI register
 			 */
-			if (read_reg(LL40LS_UNIT_ID_HIGH, id_high) == OK && id_high >= 0 &&
-			    read_reg(LL40LS_UNIT_ID_LOW, id_low) == OK && id_low >= 0) {
+			if (read_reg(LL40LS_UNIT_ID_HIGH, id_high) == OK &&
+			    read_reg(LL40LS_UNIT_ID_LOW, id_low) == OK) {
 				_unit_id = (uint16_t)((id_high << 8) | id_low) & 0xFFFF;
 				goto ok;
 			}
@@ -206,8 +206,8 @@ int LidarLiteI2C::probe()
 			  check for hw and sw versions. It would be better if
 			  we had a proper WHOAMI register
 			 */
-			if (read_reg(LL40LS_HW_VERSION, _hw_version) == OK && _hw_version >= 0 &&
-			    read_reg(LL40LS_SW_VERSION, _sw_version) == OK && _sw_version >= 0) {
+			if (read_reg(LL40LS_HW_VERSION, _hw_version) == OK &&
+			    read_reg(LL40LS_SW_VERSION, _sw_version) == OK) {
 				set_maximum_distance(LL40LS_MAX_DISTANCE_V1);
 				goto ok;
 			}
