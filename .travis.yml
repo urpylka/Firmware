@@ -9,20 +9,20 @@ services:
 language: cpp
 
 git:
-  depth: 2000
+  depth: 100
   submodules: false
 
 cache:
   ccache: true
+matrix:
+  fast_finish: true
+  include:
+    - os: linux
+      dist: xenial
+      if: branch = coverity_scan
 
 before_install:
-  # install dependencies for the coverity build (target and branch), otherwise exit early
-  - if [[ "${TRAVIS_BRANCH}" = "coverity_scan" ]]; then
-      sudo pip install empy jinja2 numpy toml;
-      echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-;
-    fi
-  # use git:// to fetch instead of https://
-  - git config --global url."git://".insteadOf https://
+    - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
 env:
  - BUILD_TARGET=px4fmu-v2_default
@@ -41,7 +41,7 @@ jobs:
     - stage: Tests
       name: Self-tests
       script: PX4_DOCKER_REPO="px4io/px4-dev-simulation-bionic:2019-10-04" ./Tools/docker_run.sh make tests
-    - stage: Tests 
+    - stage: Tests
       name: Mission test
       script: PX4_DOCKER_REPO="px4io/px4-dev-ros-kinetic:2019-10-24" ./Tools/docker_run.sh make tests_mission
     - stage: Tests

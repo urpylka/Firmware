@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <float.h>
 #include <string.h>
+#include <math.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
@@ -118,8 +119,12 @@ mixer_tick(void)
 	mixer_handle_text_create_mixer();
 
 	/* check that we are receiving fresh data from the FMU */
-	if ((system_state.fmu_data_received_time == 0) ||
-	    hrt_elapsed_time(&system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
+	irqstate_t irq_flags = enter_critical_section();
+	const hrt_abstime fmu_data_received_time = system_state.fmu_data_received_time;
+	leave_critical_section(irq_flags);
+
+	if ((fmu_data_received_time == 0) ||
+	    hrt_elapsed_time(&fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
 
 		/* too long without FMU input, time to go to failsafe */
 		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
@@ -135,9 +140,9 @@ mixer_tick(void)
 		/* this flag is never cleared once OK */
 		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED);
 
-		if (system_state.fmu_data_received_time > last_fmu_update) {
+		if (fmu_data_received_time > last_fmu_update) {
 			new_fmu_data = true;
-			last_fmu_update = system_state.fmu_data_received_time;
+			last_fmu_update = fmu_data_received_time;
 		}
 	}
 
@@ -249,15 +254,17 @@ mixer_tick(void)
 	}
 
 	/*
-	 * Set simple mixer trim values
-	 * (there should be a "dirty" flag to indicate that r_page_servo_control_trim has changed)
+	 * Set simple mixer trim values. If the OK flag is set the mixer is fully loaded.
 	 */
-	mixer_group.set_trims(r_page_servo_control_trim, PX4IO_SERVO_COUNT);
+	if (update_trims && r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) {
+		update_trims = false;
+		mixer_group.set_trims(r_page_servo_control_trim, PX4IO_SERVO_COUNT);
+	}
 
 	/*
 	 * Update air-mode parameter
 	 */
-	mixer_group.set_airmode(REG_TO_BOOL(r_setup_airmode));
+	mixer_group.set_airmode((Mixer::Airmode)REG_TO_SIGNED(r_setup_airmode));
 
 
 	/*
@@ -289,7 +296,6 @@ mixer_tick(void)
 			mixer_group.set_max_delta_out_once(delta_out_max);
 		}
 
-		/* mix */
 		/* update parameter for mc thrust model if it updated */
 		if (update_mc_thrust_param) {
 			mixer_group.set_thrust_factor(REG_TO_FLOAT(r_setup_thr_fac));
@@ -550,6 +556,10 @@ mixer_handle_text(const void *buffer, size_t length)
 
 	/* disable mixing, will be enabled once load is complete */
 	PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, PX4IO_P_STATUS_FLAGS_MIXER_OK);
+
+	/* set the update flags to dirty so we reload those values after a mixer change */
+	update_trims = true;
+	update_mc_thrust_param = true;
 
 	/* abort if we're in the mixer - the caller is expected to retry */
 	if (in_mixer) {

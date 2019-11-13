@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -429,20 +428,6 @@ private:
 	 * @return 0 on success, 1 on failure
 	 */
 	int 			self_test();
-
-	/**
-	 * Accel self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int 			accel_self_test();
-
-	/**
-	 * Gyro self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int 			gyro_self_test();
 
 	/*
 	  set low pass filter frequency

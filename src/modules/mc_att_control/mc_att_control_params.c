@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.15f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.05f);
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.2f);
 
 /**
  * Roll rate integrator limit
@@ -151,7 +151,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.15f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.05f);
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.2f);
 
 /**
  * Pitch rate integrator limit
@@ -264,19 +264,6 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
 
 /**
- * Yaw feed forward
- *
- * Feed forward weight for manual yaw control. 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
-
-/**
  * Max roll rate
  *
  * Limit for roll rate in manual and auto modes (except acro).
@@ -325,21 +312,6 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 200.0f);
-
-/**
- * Max yaw rate in auto mode
- *
- * Limit for yaw rate, has effect for large rotations in autonomous mode,
- * to avoid large control output and mixer saturation.
- *
- * @unit deg/s
- * @min 0.0
- * @max 360.0
- * @decimal 1
- * @increment 5
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_YAWRAUTO_MAX, 45.0f);
 
 /**
  * Max acro roll rate
@@ -575,17 +547,22 @@ PARAM_DEFINE_FLOAT(MC_TPA_RATE_D, 0.0f);
  * @increment 10
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 30.f);
+PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 0.f);
 
 /**
  * Multicopter air-mode
  *
  * The air-mode enables the mixer to increase the total thrust of the multirotor
  * in order to keep attitude and rate control even at low and high throttle.
- * This function should be disabled during tuning as it will help the controller
- * to diverge if the closed-loop is unstable.
  *
- * @boolean
+ * This function should be disabled during tuning as it will help the controller
+ * to diverge if the closed-loop is unstable (i.e. the vehicle is not tuned yet).
+ *
+ * Enabling air-mode for yaw requires the use of an arming switch.
+ *
+ * @value 0 Disabled
+ * @value 1 Roll/Pitch
+ * @value 2 Roll/Pitch/Yaw
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_INT32(MC_AIRMODE, 0);
