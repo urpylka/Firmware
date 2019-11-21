@@ -90,6 +90,7 @@
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
 #include "mavlink_timesync.h"
+#include <drivers/drv_pwm_output.h>
 
 class Mavlink;
 
@@ -290,4 +291,6 @@ private:
 	// Disallow copy construction and move assignment.
 	MavlinkReceiver(const MavlinkReceiver &) = delete;
 	MavlinkReceiver operator=(const MavlinkReceiver &) = delete;
+
+	int _t_actuator_controls_3;
 };
