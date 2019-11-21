@@ -45,14 +45,7 @@
 #include <px4_defines.h>
 #include <systemlib/mavlink_log.h>
 
-float abs_float(float val)
-{
-	if (val < 0) {
-		val = val * -1;
-	}
-
-	return val;
-}
+#include <math.h>
 
 orb_advert_t		_mav_pub_rc;	///< mavlink log pub
 
@@ -112,8 +105,8 @@ int OutputRC::update(const ControlData *control_data)
 
 	// Publishing only if something really changed
 	for (int i = 0; i < 4; i++) {
-		if (abs_float(actuator_controls_from_inputs.control[i]
-			      - _prev_inputed_actuator_controls.control[i])
+		if (fabsf(actuator_controls_from_inputs.control[i]
+			  - _prev_inputed_actuator_controls.control[i])
 		    > _actuator_changed_epsilon) {
 			publish_allowed = true;
 			actuator_controls_to_publish.control[i] =
