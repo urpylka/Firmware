@@ -551,7 +551,7 @@ PrecLand::run_state_asearch_new_circle()
 	if (check_state_conditions(PrecLandState::HorizontalApproach) && !switch_to_state_horizontal_approach())
 		return;
 
-	// We have reach a start position for the new circle
+	// We have reached a start position for the new circle
 	if (check_state_conditions(PrecLandState::ActiveSearch)) {
 		// Start moving around the circle
 		if (!switch_to_state_asearch()) {
