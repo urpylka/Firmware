@@ -46,7 +46,6 @@ px4_add_board(
 		sensors
 		simulator
 		vmount
-		vtol_att_control
 		wind_estimator
 
 	SYSTEMCMDS
