@@ -57,7 +57,7 @@
 
 #define SEC2USEC 1000000.0f
 
-#define PLD_STATUS_MAVLINK(_level, _text, ...)	if (_param_info.get()) mavlink_vasprintf(_level, _navigator->get_mavlink_log_pub(), _text, ##__VA_ARGS__);
+#define PLD_STATUS_MAVLINK(_level, _text, ...)	if (_param_pld_info.get()) mavlink_vasprintf(_level, _navigator->get_mavlink_log_pub(), _text, ##__VA_ARGS__);
 
 #if !defined(__PX4_NUTTX)
 #include <cmath>
@@ -88,15 +88,15 @@ PrecLand::on_activation()
 	_last_slewrate_time = 0;
 
 	// Strict precland is enabled
-	if (_param_strict.get())
+	if (_param_pld_strict.get())
 	{
 		// Strict precland in funnel enabled
-		if (_param_funnel_top_rad.get() > 0)
+		if (_param_pld_funnel_top_rad.get() > 0)
 		{
 			// Check if the funnel geometry is correct
-			if (_param_funnel_top_rad.get() > _param_pld_hacc_rad.get() &&
-				_param_funnel_le_alt.get() >= _param_pld_fappr_alt.get() &&
-				_param_funnel_le_alt.get() < _param_pld_srch_alt.get())
+			if (_param_pld_funnel_top_rad.get() > _param_pld_hacc_rad.get() &&
+				_param_pld_funnel_le_alt.get() >= _param_pld_fappr_alt.get() &&
+				_param_pld_funnel_le_alt.get() < _param_pld_srch_alt.get())
 			{
 				/* Calculate funnel linear part slope from two points
 				* 	k = (r_t - r_h) / (a_s - a_b), where:
@@ -105,8 +105,8 @@ PrecLand::on_activation()
 				*		a_s - a top funnel height (a search altitude),
 				*		a_b - a bottom funnel linear part height.
 				*/
-				_strict_funnel_k = (_param_funnel_top_rad.get() - _param_pld_hacc_rad.get()) /
-					(_param_pld_srch_alt.get() - _param_funnel_le_alt.get());
+				_strict_funnel_k = (_param_pld_funnel_top_rad.get() - _param_pld_hacc_rad.get()) /
+					(_param_pld_srch_alt.get() - _param_pld_funnel_le_alt.get());
 
 				/* Calculate funnel linear part offset from the top point
 				* 	r_o = r_t + k * a_s, where:
@@ -114,7 +114,7 @@ PrecLand::on_activation()
 				*		k - a funnel linear part slope,
 				*		a_s - a top funnel height (a search altitude)
 				*/
-				_strict_funnel_r_o = _param_funnel_top_rad.get() - _strict_funnel_k * _param_pld_srch_alt.get();
+				_strict_funnel_r_o = _param_pld_funnel_top_rad.get() - _strict_funnel_k * _param_pld_srch_alt.get();
 
 				PX4_INFO("Strict precland in a funnel");
 				PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Strict precland: FUNNEL");
@@ -351,7 +351,7 @@ PrecLand::run_state_horizontal_approach()
 
 	}
 
-	if (hrt_absolute_time() - _state_start_time > _param_state_timeout.get()*SEC2USEC) {
+	if (hrt_absolute_time() - _state_start_time > _param_pld_state_timeout.get()*SEC2USEC) {
 		PX4_ERR("Precision landing took too long during horizontal approach phase");
 		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Too long in the horizontal approach phase");
 
@@ -411,7 +411,7 @@ PrecLand::run_state_descend_above_target()
 	// HINT: This branch may try to switch to horizontal approach while target is not updated.
 	// It will cause multiple errors output after unsuccessfull switch_to_state_horizontal_approach
 	// calls. To avoid such behaviour _target_pose_updated flag check has been added.
-	if (_param_strict.get() && _target_pose_updated)
+	if (_param_pld_strict.get() && _target_pose_updated)
 	{
 		// Get the current local position
 		vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
@@ -493,7 +493,7 @@ PrecLand::run_state_search()
 		PX4_WARN("Search timed out");
 		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Search timed out");
 
-		if (_param_asearch_enabled.get()) {
+		if (_param_pld_asearch_enabled.get()) {
 			// Active search is enabled, reset an active search (reset the attempts counter)
 			if (!switch_to_state_asearch_reset()) {
 				PX4_ERR("Can't reset an active search");
@@ -580,7 +580,7 @@ PrecLand::run_state_asearch()
 		PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Active search circle finished");
 
 		// Increase the circle radius
-		_asearch_radius += _param_asearch_cc_step.get();
+		_asearch_radius += _param_pld_asearch_cc_step.get();
 
 		// Start a new circle
 		if (!switch_to_state_asearch_new_circle()) {
@@ -619,7 +619,7 @@ PrecLand::run_state_asearch()
 		// We are reaching the end of the circle and acceptance radius allows to do the last step smaller than requested
 		// m = 2 * R * sin(phi / 2)
 		if ((_asearch_phi + _asearch_phi_step > 2 * (float)M_PI) &&
-				(2 * _asearch_radius * sinf((2 * (float)M_PI - _asearch_phi) / 2) >= _param_asearch_acc_rad.get()))
+				(2 * _asearch_radius * sinf((2 * (float)M_PI - _asearch_phi) / 2) >= _param_pld_asearch_acc_rad.get()))
 			_asearch_phi = 2 * (float)M_PI;
 		else
 			// Move around the circle
@@ -780,21 +780,21 @@ PrecLand::switch_to_state_asearch_reset()
 bool
 PrecLand::switch_to_state_asearch_start()
 {
-	if (_param_asearch_cc_step.get() > _param_asearch_limiting_radius.get()) {
+	if (_param_pld_asearch_cc_step.get() > _param_pld_asearch_limiting_radius.get()) {
 		PX4_ERR("Concentric circles radius step is too hight");
 		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Concentric circles radius step is too hight");
 
 		return false;
 	}
 
-	if (_param_asearch_cc_step.get() < _param_asearch_acc_rad.get()) {
+	if (_param_pld_asearch_cc_step.get() < _param_pld_asearch_acc_rad.get()) {
 		PX4_ERR("Circle radius step is less than an acceptance radius");
 		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Too low circle radius step");
 
 		return false;
 	}
 
-	if (_param_asearch_setpoint_step.get() < _param_asearch_acc_rad.get()) {
+	if (_param_pld_asearch_setpoint_step.get() < _param_pld_asearch_acc_rad.get()) {
 		PX4_ERR("Setpoint step is less than an acceptance radius");
 		PLD_STATUS_MAVLINK(_MSG_PRIO_ERROR, "PLD: Too low setpoint step");
 
@@ -802,7 +802,7 @@ PrecLand::switch_to_state_asearch_start()
 	}
 
 	// First circle radius
-	_asearch_radius = _param_asearch_cc_step.get();
+	_asearch_radius = _param_pld_asearch_cc_step.get();
 
 	PX4_INFO("Starting an active search");
 	PLD_STATUS_MAVLINK(_MSG_PRIO_WARNING, "PLD: Starting an active search");
@@ -828,7 +828,7 @@ PrecLand::switch_to_state_asearch_new_circle()
 
 	// Calculate a new polar coordinates step as a horde between two set setpoints
 	// phi = 2 * asin(m / (2 * R))
-	_asearch_phi_step = 2 * asin(_param_asearch_setpoint_step.get() / (2 * _asearch_radius));
+	_asearch_phi_step = 2 * asin(_param_pld_asearch_setpoint_step.get() / (2 * _asearch_radius));
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
@@ -894,7 +894,7 @@ PrecLand::switch_to_state_fallback()
 
 	vehicle_command_s vcmd = {};
 
-	switch(_param_fallback_action.get())
+	switch(_param_pld_fallback_action.get())
 	{
 	case PrecLand::PLD_FOAC_LAND:
 		vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
@@ -933,7 +933,7 @@ PrecLand::switch_to_state_done()
 bool PrecLand::check_hacc_rad(vehicle_local_position_s *vehicle_local_position)
 {
 	// Strict precland is enabled and it's a strict precland in a funnel
-	if (_param_strict.get() && (_strict_funnel_k > 0))
+	if (_param_pld_strict.get() && (_strict_funnel_k > 0))
 	{
 		/* Calculate radius using a funnel linear part function and then limit output value
 		* to the funnel top radius from the top and to the horizontal acceptance radius from
@@ -946,7 +946,7 @@ bool PrecLand::check_hacc_rad(vehicle_local_position_s *vehicle_local_position)
 		*
 		*/
 		float funnel_rad = math::max(math::min((_target_pose.z_abs - vehicle_local_position->z) *
-			_strict_funnel_k + _strict_funnel_r_o, _param_funnel_top_rad.get()), _param_pld_hacc_rad.get());
+			_strict_funnel_k + _strict_funnel_r_o, _param_pld_funnel_top_rad.get()), _param_pld_hacc_rad.get());
 
 		// PX4_WARN("FUNNEL: %f m, ALT: %f m", (double)funnel_rad, (double)fabsf(_target_pose.z_abs - vehicle_local_position->z));
 
@@ -1026,27 +1026,27 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		return true;
 
 	case PrecLandState::ActiveSearchStart:
-		return _asearch_cnt < _param_max_asearches.get();
+		return _asearch_cnt < _param_pld_max_asearches.get();
 
 	case PrecLandState::ActiveSearchNewCircle:
 		if (_state == PrecLandState::ActiveSearchStart)
-			return _asearch_radius >= _param_asearch_setpoint_step.get();
+			return _asearch_radius >= _param_pld_asearch_setpoint_step.get();
 		else if (_state == PrecLandState::ActiveSearch)
-			return _asearch_radius <= _param_asearch_limiting_radius.get();
+			return _asearch_radius <= _param_pld_asearch_limiting_radius.get();
 		else
 			return false;
 
 	case PrecLandState::ActiveSearch:
 		if ((_state == PrecLandState::ActiveSearchNewCircle) || (_state == PrecLandState::ActiveSearch))
 			return check_setpoint_reached(&_asearch_ref, _asearch_target_x, _asearch_target_y,
-				_param_asearch_acc_rad.get());
+				_param_pld_asearch_acc_rad.get());
 		else
 			return false;
 
 	case PrecLandState::ActiveSearchReturn:
 		if (_state == PrecLandState::ActiveSearchReturn)
 			return check_setpoint_reached(&_asearch_ref, _asearch_target_x, _asearch_target_y,
-				_param_asearch_acc_rad.get());
+				_param_pld_asearch_acc_rad.get());
 		else
 			return false;
 

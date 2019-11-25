@@ -170,18 +170,18 @@ private:
 		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_pld_srch_alt,
 		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_pld_srch_tout,
 		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch,
-		(ParamBool<px4::params::PLD_STRICT>) _param_strict,
-		(ParamFloat<px4::params::PLD_FUNNEL_TR>) _param_funnel_top_rad,
-		(ParamFloat<px4::params::PLD_FUNNEL_LEA>) _param_funnel_le_alt,
-		(ParamFloat<px4::params::PLD_STATE_TIME>) _param_state_timeout,
-		(ParamBool<px4::params::PLD_INFO>) _param_info,
-		(ParamInt<px4::params::PLD_FOAC>) _param_fallback_action,
-		(ParamBool<px4::params::PLD_ASEN>) _param_asearch_enabled,
-		(ParamFloat<px4::params::PLD_ASLR>) _param_asearch_limiting_radius,
-		(ParamFloat<px4::params::PLD_ASAR>) _param_asearch_acc_rad,
-		(ParamFloat<px4::params::PLD_ASCS>) _param_asearch_cc_step,
-		(ParamFloat<px4::params::PLD_ASPS>) _param_asearch_setpoint_step,
-		(ParamInt<px4::params::PLD_MAX_ASRCH>) _param_max_asearches
+		(ParamBool<px4::params::PLD_STRICT>) _param_pld_strict,
+		(ParamFloat<px4::params::PLD_FUNNEL_TR>) _param_pld_funnel_top_rad,
+		(ParamFloat<px4::params::PLD_FUNNEL_LEA>) _param_pld_funnel_le_alt,
+		(ParamFloat<px4::params::PLD_STATE_TIME>) _param_pld_state_timeout,
+		(ParamBool<px4::params::PLD_INFO>) _param_pld_info,
+		(ParamInt<px4::params::PLD_FOAC>) _param_pld_fallback_action,
+		(ParamBool<px4::params::PLD_ASEN>) _param_pld_asearch_enabled,
+		(ParamFloat<px4::params::PLD_ASLR>) _param_pld_asearch_limiting_radius,
+		(ParamFloat<px4::params::PLD_ASAR>) _param_pld_asearch_acc_rad,
+		(ParamFloat<px4::params::PLD_ASCS>) _param_pld_asearch_cc_step,
+		(ParamFloat<px4::params::PLD_ASPS>) _param_pld_asearch_setpoint_step,
+		(ParamInt<px4::params::PLD_MAX_ASRCH>) _param_pld_max_asearches
 	)
 
 	// non-navigator parameters
