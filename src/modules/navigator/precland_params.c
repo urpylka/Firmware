@@ -98,7 +98,7 @@ PARAM_DEFINE_FLOAT(PLD_SRCH_ALT, 10.0f);
 /**
  * Search timeout
  *
- * Time allowed to search for the landing target before falling back to normal landing.
+ * Time allowed to search for the landing target before falling back to selected action.
  *
  * @unit s
  * @min 0.0
@@ -175,7 +175,7 @@ PARAM_DEFINE_FLOAT(PLD_FUNNEL_LEA, 0);
 PARAM_DEFINE_FLOAT(PLD_STATE_TIME, 10);
 
 /**
- * Send precland info using MAVLink 
+ * Send precland info using MAVLink
  *
  * Send MAVLink status texts about the precision land procedure.
  *
@@ -185,7 +185,7 @@ PARAM_DEFINE_FLOAT(PLD_STATE_TIME, 10);
 PARAM_DEFINE_INT32(PLD_INFO, 0);
 
 /**
- * Precision land fallback action 
+ * Precision land fallback action
  *
  * An action to do if the precision land has failed.
  *
@@ -214,12 +214,12 @@ PARAM_DEFINE_INT32(PLD_ASEN, 0);
  *
  * @unit m
  * @min 0.5
- * @max 5
+ * @max 50
  * @decimal 2
  * @increment 0.1
  * @group Precision Land
  */
-PARAM_DEFINE_FLOAT(PLD_ASLR, 2);
+PARAM_DEFINE_FLOAT(PLD_ASLR, 3);
 
 /**
  * Precision land active search acceptance radius
@@ -242,7 +242,7 @@ PARAM_DEFINE_FLOAT(PLD_ASAR, 0.2);
  *
  * @unit m
  * @min 0.1
- * @max 1
+ * @max 5
  * @decimal 2
  * @increment 0.1
  * @group Precision Land
@@ -256,12 +256,12 @@ PARAM_DEFINE_FLOAT(PLD_ASCS, 1);
  *
  * @unit m
  * @min 0.1
- * @max 2
+ * @max 5
  * @decimal 2
  * @increment 0.1
  * @group Precision Land
  */
-PARAM_DEFINE_FLOAT(PLD_ASPS, 0.2);
+PARAM_DEFINE_FLOAT(PLD_ASPS, 0.3);
 
 /**
  * Maximum number of active search search attempts
