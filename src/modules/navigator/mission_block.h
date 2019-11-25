@@ -133,5 +133,5 @@ protected:
 	hrt_abstime _time_wp_reached{0};
 
 	orb_advert_t    _actuator_pub{nullptr};
-	int _t_actuator_controls_2;
+	int _t_actuator_controls_3;
 };
