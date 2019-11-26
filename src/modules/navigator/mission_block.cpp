@@ -476,10 +476,10 @@ MissionBlock::issue_command(const mission_item_s &item)
 					     (static_cast<float>(PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
 		if (_actuator_pub != nullptr) {
-			orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);
+			orb_publish(ORB_ID(actuator_controls_3), _actuator_pub, &actuators);
 
 		} else {
-			_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
+			_actuator_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuators);
 		}
 
 	} else {

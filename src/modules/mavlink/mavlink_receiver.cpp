@@ -591,6 +591,8 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		actuator_controls_s actuators = {};
 		actuators.timestamp = hrt_absolute_time();
 
+		_mavlink->send_statustext_info("DO_SET_SERVO command received");
+
 		// Copying actual AUX values to change only one output
 		// and leave others as they are
 		orb_copy(ORB_ID(actuator_controls_3), _t_actuator_controls_3,
@@ -625,7 +627,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		actuators.control[aux_num] = (vehicle_command.param2 - static_cast<float>(PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2) /
 					     (static_cast<float>(PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
-		orb_publish(ORB_ID(actuator_controls_3), _actuator_controls_pubs[3], &actuators);
+		if (_actuator_controls_pubs[3] == nullptr) {
+					_actuator_controls_pubs[3] = orb_advertise(ORB_ID(actuator_controls_3), &actuators);
+		} else {
+			orb_publish(ORB_ID(actuator_controls_3), _actuator_controls_pubs[3], &actuators);
+		}
 
 	} else {
 

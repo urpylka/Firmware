@@ -62,7 +62,7 @@ RCUpdate::RCUpdate(const Parameters &parameters)
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
 	memset(&_param_rc_values, 0, sizeof(_param_rc_values));
 	// Subscribing for not to jam other publishers (MAV_CMD_DO_SET_SERVO for example)
-        _t_actuator_controls_3 = orb_subscribe(ORB_ID(actuator_controls_3));
+	_t_actuator_controls_3 = orb_subscribe(ORB_ID(actuator_controls_3));
 }
 
 int RCUpdate::init()
@@ -491,7 +491,7 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			if (publish_allowed) {
 				/* publish actuator_controls_3 topic */
 				 orb_publish_auto(ORB_ID(actuator_controls_3), &_actuator_group_3_pub, &actuator_group_3, &instance,
-                                         ORB_PRIO_DEFAULT);
+                                         ORB_PRIO_HIGH);
 
 				// Store current values for calculating changes on the next step
 				for (int i = 0; i < 8; i++) {
