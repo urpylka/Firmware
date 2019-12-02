@@ -134,6 +134,34 @@ PARAM_DEFINE_FLOAT(LTEST_SCALE_X, 1.0f);
 PARAM_DEFINE_FLOAT(LTEST_SCALE_Y, 1.0f);
 
 /**
+ * Offset for sensor measurements in sensor x axis
+ *
+ * This offset is added to landing target x measurements before they are used
+ *
+ * @unit m
+ * @min -5.0
+ * @max 5.0
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_OFFSET_X, 0.0f);
+
+/**
+ * Offset for sensor measurements in sensor y axis
+ *
+ * This offset is added to landing target y measurements before they are used
+ *
+ * @unit m
+ * @min -5.0
+ * @max 5.0
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_OFFSET_Y, 0.0f);
+
+/**
  * Landing target estimator
  *
  * @reboot_required true
