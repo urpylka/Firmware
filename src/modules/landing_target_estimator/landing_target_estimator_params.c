@@ -173,3 +173,51 @@ PARAM_DEFINE_FLOAT(LTEST_OFFSET_Y, 0.0f);
  * @value 2 IR-Lock
  */
 PARAM_DEFINE_INT32(LTEST_EN, 0);
+
+/**
+ * Landing target X offset from estimated position in NED
+ *
+ * @unit m
+ * @min 0.0
+ * @max 100.0
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_OFF_X, 0.0f);
+
+/**
+ * Landing target Y offset from estimated position in NED
+ *
+ * @unit m
+ * @min 0.0
+ * @max 100.0
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_OFF_Y, 0.0f);
+
+/**
+ * Sensor X position offset in body frame
+ *
+ * @unit m
+ * @min 0.0
+ * @max 100.0
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_S_OFF_X, 0.0f);
+
+/**
+ * Sensor Y position offset in body frame
+ *
+ * @unit m
+ * @min 0.0
+ * @max 100.0
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_S_OFF_Y, 0.0f);
