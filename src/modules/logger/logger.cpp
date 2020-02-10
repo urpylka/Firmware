@@ -661,6 +661,7 @@ void Logger::add_default_topics()
 	add_topic("timesync_status");
 	add_topic("charging_station_state");
 	add_topic("external_vehicle_position");
+	add_topic("landing_target_pose");
 
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
 	add_topic("actuator_controls_virtual_fw");
